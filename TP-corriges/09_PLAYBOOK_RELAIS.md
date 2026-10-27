@@ -16,14 +16,14 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 |---|---|---|
 | RELAIS 0 — réseau du labo | ✅ | hotspot `MID-SAMA 6482`, passerelle `192.168.137.1` joignable en ARP |
 | RELAIS 1 — socle de 🅰 (5 à 8) | ✅ | `srv1.ofppt.local`, `192.168.137.10/24` sur `wlp2s0`, route par défaut |
-| RELAIS 1 — socle de 🅱 (9 à 10) | 🟡 | *déclaré* dans l'issue #1 (17/10, auteur `precieuxboko-create`) : `nmcli up` OK, `curl deb.debian.org` → `HTTP/2 200`. **Non prouvé** : `hostname -f`, `ip -4 a`, `ip r` non fournis ; et `192.168.137.20` ne répond ni en ARP ni en TCP depuis SRV1 |
+| RELAIS 1 — socle de 🅱 (9 à 10) | ✅ | issue #2 : `srv2.ofppt.local`, `192.168.137.20/24` sur `wlp2s0`, `default via 192.168.137.1`, `HTTP/2 200`, **`PHASE 1 VALIDÉE — 6 contrôles OK`** ; ARP vu depuis SRV1 (`74:e5:f9:d4:45:a4`) |
 | RELAIS 2 — DNS de 🅰 (12 à 21) | ✅ | `PHASE 2 VALIDÉE — 29 contrôles OK` |
 | RELAIS 2 — bascule du résolveur (24) | ✅ | `resolv.conf` → `127.0.0.1`, `getent hosts www.ntic.local` répond |
 | RELAIS 2 — test depuis 🅱 et 🆆 (23) | 🟡 | fait depuis SRV1 sur sa propre IP uniquement |
 | PARE-FEU (22) | ⚠️ | `sudo ufw status` doit contenir la règle 53 — à vérifier |
 | RELAIS 3 à 6 | ⏳ | dépend de 🅱 |
 
-**Prochaine action : aucune côté 🅰.** Le bâton est à 🅱 (étapes 9, 19, 20, 25 bis).
+**Prochaine action : aucune côté 🅰.** Le bâton est à 🅱 (étapes 19, 20 puis 25 bis).
 🅰 reprend la main à l'étape 50 (création de `khadija` avec l'UID fourni par 🅱).
 
 > ⚠️ **Deux pièges mesurés sur ce réseau, à ne pas confondre avec des pannes :**
@@ -36,21 +36,18 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 | Quand | Qui | Quoi | Verdict |
 |---|---|---|---|
 | 17/10 | 🅱 (`precieuxboko-create`) | issue #1 « premier code » : étape 9, `nmcli up` + `curl deb.debian.org` → `HTTP/2 200` | 🟡 socle déclaré OK, **preuves incomplètes** (pas de `hostname -f`, `ip -4 a`, `ip r`, ni script) |
-| 17/25 | 🅰 | contrôle croisé depuis SRV1 : `192.168.137.20` → pas d'entrée ARP, ICMP muet, TCP 22/80/443/445/2049 fermés | ⛔ 🅱 n'est pas (ou plus) sur le réseau au moment du contrôle |
+| 17/25 | 🅰 | contrôle croisé depuis SRV1 : `192.168.137.20` → pas d'entrée ARP | ⛔ 🅱 absent à cet instant |
+| 17/51 | 🅱 (`precieuxboko-create`) | issue #2 : étape 9 refaite **avec l'UUID**, `hostname -f`, `ip -4 a`, `ip r`, `curl`, puis `00-verif-reseau.sh` → **6/6 OK**, et `192.168.137.10 répond au ping` depuis SRV2 | ✅ **RELAIS 1 validé des deux côtés** (ping croisé A↔B confirmé) |
 
-**Ce qui manque pour valider l'étape 9 de 🅱** — 3 commandes, à faire quand il est reconnecté :
-
-```bash
-hostname -f                       # srv2.ofppt.local
-ip -4 a | grep 192.168.137.20     # 192.168.137.20/24 présent
-ip r | grep default               # default via 192.168.137.1
-```
-
-> 🔎 **Point de vigilance** : il a utilisé `"$CON"` (le **nom** du profil) et non l'**UUID**.
-> C'est exactement le piège qui a fait dériver 🅰 (`VERECHAGUINE SIEGE 2` → `MID-SAMA 6482`).
-> S'il s'est reconnecté ailleurs depuis, son IP `.20` est peut-être posée sur le mauvais
-> profil. À vérifier avec `nmcli -f NAME,UUID connection show | grep -i -B1 -A0 ""` puis
-> `nmcli -g GENERAL.CONNECTION,IP4.ADDRESS device show <interface>`.
+> 🔎 **Deux dettes dans l'issue #2, sans gravité :**
+>
+> 1. La commande `git clone` a été collée sur la **même ligne** que le `bash` suivant
+>    (`git clone URL ~/tp-reseau bash ~/tp-reseau/...`). Le clone n'a donc pas pu se faire
+>    correctement, même si le script a tourné — le dépôt existait déjà. Avant tout `git pull`,
+>    vérifier : `ls ~/tp-reseau/TP-corriges/scripts/`.
+> 2. `/etc/resolv.conf` pointe encore sur `127.0.0.53` (`systemd-resolved`). **C'est normal
+>    pour 🅱** : il est client. Ça deviendra un problème seulement si `dig www.ntic.local`
+>    ne répond pas après la bascule de l'étape 25 bis.
 
 ---
 
@@ -169,7 +166,7 @@ curl -sI --max-time 8 https://deb.debian.org | head -1   # ⬅️ C'EST CE TEST 
 >   warp-cli status                    # Connected ? -> warp-cli disconnect
 >   ```
 
-**9. 🅱 Refait les étapes 5 à 8**, avec ses propres valeurs :
+**9. 🅱 Refait les étapes 5 à 8**, avec ses propres valeurs : ✅ *fait le 27/10 (issue #2, 6/6)*
 
 ```bash
 sudo hostnamectl set-hostname srv2.ofppt.local
@@ -201,7 +198,7 @@ bash ~/tp-reseau/TP-corriges/scripts/00-verif-reseau.sh 192.168.137.20
 > 5 secondes avant de basculer sur la passerelle (et `apt` ramperait). La bascule se fait à
 > l'**étape 25 bis**, quand 🅰 annonce `🟢 DNS OK`.
 
-**10. 🅰 et 🅱 : ping croisé** ⏳ *en attente de 🅱*
+**10. 🅰 et 🅱 : ping croisé** ✅ *fait le 27/10 — vu depuis 🅱 (`192.168.137.10` répond)*
 ```bash
 # 🅰
 ping -c2 192.168.137.20
@@ -581,7 +578,7 @@ avec le rapport de `scripts/90-collecte.sh SRV2`.
 
 ```
 RELAIS 0  Réseau ............ [x] 🆆
-RELAIS 1  IP fixes .......... [x] 🅰  [ ] 🅱
+RELAIS 1  IP fixes .......... [x] 🅰  [x] 🅱
 RELAIS 2  DNS ............... [x] 🅰  ← 29/29, résolveur basculé
 RELAIS 3  Web + FTP ......... [ ] 🅱  [ ] 🆆
 RELAIS 4  Samba ............. [ ] 🅱  [ ] 🆆
