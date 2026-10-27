@@ -6,6 +6,30 @@ avant**. Si une étape dépasse 20 minutes, applique la règle de déblocage (§
 laisser le groupe attendre.
 
 Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 🟢 signal de passage
+✅ fait · 🟡 fait en partie · ⏳ en attente · ⏸ sans objet
+
+---
+
+## État au 27/10 — 🅰 a fini sa part
+
+| Bloc | État | Preuve |
+|---|---|---|
+| RELAIS 0 — réseau du labo | ✅ | hotspot `MID-SAMA 6482`, passerelle `192.168.137.1` joignable en ARP |
+| RELAIS 1 — socle de 🅰 (5 à 8) | ✅ | `srv1.ofppt.local`, `192.168.137.10/24` sur `wlp2s0`, route par défaut |
+| RELAIS 1 — socle de 🅱 (9 à 10) | ⏳ | `192.168.137.20` ne répond pas encore |
+| RELAIS 2 — DNS de 🅰 (12 à 21) | ✅ | `PHASE 2 VALIDÉE — 29 contrôles OK` |
+| RELAIS 2 — bascule du résolveur (24) | ✅ | `resolv.conf` → `127.0.0.1`, `getent hosts www.ntic.local` répond |
+| RELAIS 2 — test depuis 🅱 et 🆆 (23) | 🟡 | fait depuis SRV1 sur sa propre IP uniquement |
+| PARE-FEU (22) | ⚠️ | `sudo ufw status` doit contenir la règle 53 — à vérifier |
+| RELAIS 3 à 6 | ⏳ | dépend de 🅱 |
+
+**Prochaine action : aucune côté 🅰.** Le bâton est à 🅱 (étapes 9, 19, 20, 25 bis).
+🅰 reprend la main à l'étape 50 (création de `khadija` avec l'UID fourni par 🅱).
+
+> ⚠️ **Deux pièges mesurés sur ce réseau, à ne pas confondre avec des pannes :**
+> `ping 192.168.137.1` et `ping 8.8.8.8` échouent tous les deux alors que tout fonctionne
+> (le hotspot Windows filtre l'ICMP). Le test valable est **TCP** :
+> `curl -sI --max-time 8 https://deb.debian.org` → `HTTP/2 200`.
 
 ---
 
@@ -33,24 +57,24 @@ Ne rien configurer. On vérifie juste que chacun a une IP en `192.168.137.x` : `
 
 ## RELAIS 1 — IP fixes (🅰 puis 🅱, 20 min)
 
-**5. 🅰 Nom de machine**
+**5. 🅰 Nom de machine** ✅ *fait le 27/10*
 ```bash
 sudo hostnamectl set-hostname srv1.ofppt.local
 ```
 
-**6. 🅰 IP fixe**
+**6. 🅰 IP fixe** ✅ *fait le 27/10*
 
 > ⛔ **Avant cette étape, vérifie que tu es bien sur le hotspot.** Si le Wi-Fi change de
 > réseau entre deux commandes, tu configures le mauvais profil et tu perds Internet.
 > ```bash
 > nmcli -g GENERAL.CONNECTION device show wlp2s0   # nom du profil réellement actif
 > nmcli -g IP4.ADDRESS device show wlp2s0          # en DHCP : doit être en 192.168.137.x
-> ping -c2 8.8.8.8                                 # l'Internet doit répondre
+> curl -sI --max-time 8 https://deb.debian.org  # l'Internet doit répondre
 > ```
 > Si `IP4.ADDRESS` n'est pas en `192.168.137.x`, tu n'es pas sur le hotspot : ne configure
 > rien, connecte-toi d'abord (`sudo nmcli device wifi connect "SSID" password "…"`).
-> ⚠️ `ping 192.168.137.1` peut échouer même quand tout va bien (pare-feu Windows) : ne te
-> fie pas à lui seul, fie-toi à `ping 8.8.8.8`.
+> ⚠️ Les deux `ping` (passerelle **et** 8.8.8.8) échouent sur ce réseau même quand tout va
+> bien : le hotspot Windows filtre l'ICMP. Seul un test **TCP** est fiable.
 
 ```bash
 # on cible l'UUID : il ne change pas si le nom du profil change
@@ -73,7 +97,7 @@ for p in "NOM_PROFIL_1" "NOM_PROFIL_2"; do
   sudo nmcli connection modify "$p" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
 done
 sudo nmcli connection up "$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
-ping -c2 8.8.8.8          # Internet doit revenir
+curl -sI --max-time 8 https://deb.debian.org | head -1   # Internet doit revenir
 ```
 
 Et pour éviter que ça recommence pendant le TP :
@@ -82,7 +106,7 @@ nmcli connection modify "AUTRE_RESEAU_CHEZ_TOI" connection.autoconnect no
 ```
 
 
-**7. 🅰 `/etc/hosts`**
+**7. 🅰 `/etc/hosts`** ✅ *fait le 27/10*
 ```bash
 sudo tee -a /etc/hosts >/dev/null <<'EOF'
 192.168.137.10   srv1.ofppt.local srv1
@@ -91,36 +115,38 @@ sudo tee -a /etc/hosts >/dev/null <<'EOF'
 EOF
 ```
 
-**8. 🅰 Contrôle**
+**8. 🅰 Contrôle** ✅ *fait le 27/10*
 ```bash
 hostname -f        # srv1.ofppt.local
 ip -4 a | grep 192.168.137.10
 ip r | grep default
-ping -c2 192.168.137.1   # pas bloquant s'il échoue : voir ci-dessous
-ping -c2 8.8.8.8         # ⬅️ C'EST CE TEST QUI DÉCIDE (apt en dépend)
+ping -c2 192.168.137.1          # souvent muet : pare-feu Windows, voir ci-dessous
+curl -sI --max-time 8 https://deb.debian.org | head -1   # ⬅️ C'EST CE TEST QUI DÉCIDE
 ```
 
-> ⚠️ **`ping 192.168.137.1` qui échoue n'est PAS une panne.** Le pare-feu Windows bloque
-> les échos ICMP par défaut sur la carte du partage de connexion (profil réseau « Public »).
-> La machine peut très bien router sans répondre au ping.
+> ⚠️ **Deux pièges sur ce réseau de TP, vérifiés en vrai :**
 >
-> **Le seul juge, c'est Internet :**
+> 1. `ping 192.168.137.1` **échoue toujours** : le pare-feu Windows bloque les échos ICMP
+>    sur la carte du partage de connexion (profil « Public »). La machine route sans répondre.
+>    Vérifie qu'elle existe quand même : `ip neigh show 192.168.137.1` doit montrer une MAC.
+>
+> 2. `ping 8.8.8.8` **échoue aussi** dès que WARP est coupé : le hotspot ne fait pas passer
+>    l'ICMP vers l'extérieur, mais il fait très bien passer le TCP. Donc `ping` n'est pas
+>    un indicateur fiable ici — et ça n'empêche **pas** `apt` de fonctionner.
+>
+> **Les seuls juges fiables :**
 > ```bash
-> ping -c2 8.8.8.8
+> curl -sI --max-time 8 https://deb.debian.org | head -1   # HTTP/2 200 → Internet OK
+> dig +short @127.0.0.1 github.com                          # une IP → résolution OK
 > getent hosts github.com
-> curl -sI --max-time 8 https://deb.debian.org | head -1
 > ```
-> - Ça répond → tout va bien, **passe à l'étape 9** (le ping de la passerelle restera muet,
->   c'est normal, ne cherche pas à le réparer).
-> - Ça ne répond pas → là c'est réel. Vérifie dans cet ordre :
+> - Ça répond → **passe à l'étape 9**.
+> - Ça ne répond pas → là c'est réel :
 >   ```bash
 >   ip neigh show 192.168.137.1        # une MAC en face = la machine Windows est bien là
 >   ip -4 a show wlp2s0                # es-tu sûr d'être sur 192.168.137.x ?
->   warp-cli status                    # CloudflareWARP actif peut casser le LAN local
->   sudo warp-cli disconnect           # à tester, puis reconnecter après le TP
+>   warp-cli status                    # Connected ? -> warp-cli disconnect
 >   ```
->   Si `ip neigh` reste vide après un ping : rien ne répond en 192.168.137.1 → tu n'es pas
->   sur le partage de connexion Windows (ou il est éteint).
 
 **9. 🅱 Refait les étapes 5 à 8**, avec ses propres valeurs :
 
@@ -141,7 +167,7 @@ EOF
 hostname -f
 ip -4 a | grep 192.168.137.20
 ip r | grep default
-ping -c2 8.8.8.8
+curl -sI --max-time 8 https://deb.debian.org | head -1   # Internet (TCP : le ping ment ici)
 
 # le contrôle automatique de la phase 1
 git clone https://github.com/jinshiagencys-byte/R-SEAU-S-CURIT-.git ~/tp-reseau 2>/dev/null \
@@ -154,7 +180,7 @@ bash ~/tp-reseau/TP-corriges/scripts/00-verif-reseau.sh 192.168.137.20
 > 5 secondes avant de basculer sur la passerelle (et `apt` ramperait). La bascule se fait à
 > l'**étape 25 bis**, quand 🅰 annonce `🟢 DNS OK`.
 
-**10. 🅰 et 🅱 : ping croisé**
+**10. 🅰 et 🅱 : ping croisé** ⏳ *en attente de 🅱*
 ```bash
 # 🅰
 ping -c2 192.168.137.20
@@ -164,7 +190,7 @@ ping -c2 192.168.137.10
 Si ça échoue alors qu'Internet fonctionne sur les deux : isolation client du hotspot, ou
 `ufw`. Tester avec `sudo ufw disable` **temporairement** pour confirmer, puis le remettre.
 
-**11. 🅰 envoie**
+**11. 🅰 envoie** ⏸ *pas nécessaire : 🅰 et 🅱 travaillent déjà ensemble, aucun message à envoyer*
 > 🟢 **PHASE 1 OK**
 > SRV1 = 192.168.137.10, SRV2 = 192.168.137.20, ping croisé OK, Internet OK.
 > 🅱 : tu peux lancer ta préparation pendant que je fais le DNS.
@@ -186,7 +212,7 @@ Si ça échoue alors qu'Internet fonctionne sur les deux : isolation client du h
 > warp-cli disconnect
 > ```
 
-**12. 🅰 Installe bind9 — AVANT de toucher au résolveur**
+**12. 🅰 Installe bind9 — AVANT de toucher au résolveur** ✅ *fait le 27/10*
 ```bash
 sudo apt update
 sudo apt install -y bind9 bind9utils bind9-dnsutils
@@ -195,32 +221,32 @@ systemctl status bind9 --no-pager | head -3
 *Si tu coupes `systemd-resolved` avant cette étape, tu perds Internet et `apt` échoue. C'est
 pour ça que l'étape 24 vient à la fin.*
 
-**13. 🅰 `named.conf.options`**
+**13. 🅰 `named.conf.options`** ✅ *fait le 27/10*
 ```bash
 sudo cp /etc/bind/named.conf.options /etc/bind/named.conf.options.orig
 ```
 Contenu à coller → **doc 07 §3.2**. Points non négociables : `listen-on { any; }`,
 `allow-query { any; }`, `forwarders { 192.168.137.1; }`, `dnssec-validation no;`.
 
-**14. 🅰 `named.conf.local`** — les 4 zones déclarées (`ofppt.local`, `ntic.local`,
+**14. 🅰 `named.conf.local`** ✅ *fait le 27/10* — les 4 zones déclarées (`ofppt.local`, `ntic.local`,
 `tri.local`, `137.168.192.in-addr.arpa`). Contenu → **doc 07 §3.3**.
 
-**15. 🅰 Crée le dossier des zones**
+**15. 🅰 Crée le dossier des zones** ✅ *fait le 27/10*
 ```bash
 sudo mkdir -p /etc/bind/zones
 ```
 
-**16. 🅰 Crée les 4 fichiers de zone** → **doc 07 §3.4** :
+**16. 🅰 Crée les 4 fichiers de zone** ✅ *fait le 27/10* → **doc 07 §3.4** :
 `ofppt.local.dir`, `ntic.local.dir`, `tri.local.dir`, `192.168.137.rev`.
 
-**17. 🅰 Droits — le piège n°1**
+**17. 🅰 Droits — le piège n°1** ✅ *fait le 27/10*
 ```bash
 sudo chown -R root:bind /etc/bind/zones
 sudo chmod 640 /etc/bind/zones/*
 ls -l /etc/bind/zones/     # doit afficher root bind
 ```
 
-**18. 🅰 Contrôle et démarrage**
+**18. 🅰 Contrôle et démarrage** ✅ *fait le 27/10*
 ```bash
 sudo named-checkconf
 sudo named-checkzone ofppt.local /etc/bind/zones/ofppt.local.dir
@@ -252,19 +278,19 @@ sudo smbpasswd -a hiba ; sudo smbpasswd -a wahid ; sudo smbpasswd -a hamid
 sudo mkdir -p /decouverte /home/{projet,data,tri,ntic}
 ```
 
-**21. 🅰 Contrôle automatique (29 enregistrements)**
+**21. 🅰 Contrôle automatique (29 enregistrements)** ✅ *fait le 27/10*
 ```bash
 git clone https://github.com/jinshiagencys-byte/R-SEAU-S-CURIT-.git ~/tp-reseau 2>/dev/null || (cd ~/tp-reseau && git pull)
 bash ~/tp-reseau/TP-corriges/scripts/01-verif-dns.sh 192.168.137.10
 ```
 Objectif : **`PHASE 2 VALIDÉE — 29 contrôles OK`**.
 
-**22. 🅰 Ouvre le pare-feu DNS**
+**22. 🅰 Ouvre le pare-feu DNS** ⚠️ *à vérifier* — `sudo ufw status | grep 53`
 ```bash
 sudo ufw allow 53
 ```
 
-**23. 🅰 Test depuis l'extérieur — LE test qui compte**
+**23. 🅰 Test depuis l'extérieur — LE test qui compte** 🟡 *fait depuis SRV1 sur sa propre IP ; reste à refaire depuis 🅱 et 🆆*
 ```bash
 # 🅱
 dig @192.168.137.10 www.ntic.local +short      # → 192.168.137.20
@@ -274,7 +300,7 @@ dig @192.168.137.10 www.ntic.local +short      # → 192.168.137.20
 nslookup www.tri.local 192.168.137.10
 ```
 
-**24. 🅰 Bascule le résolveur système** (seulement maintenant)
+**24. 🅰 Bascule le résolveur système** (seulement maintenant) ✅ *fait le 27/10*
 ```bash
 sudo systemctl disable --now systemd-resolved && sudo systemctl mask systemd-resolved
 sudo mkdir -p /etc/NetworkManager/conf.d
@@ -285,7 +311,7 @@ printf 'nameserver 127.0.0.1\nsearch ofppt.local\n' | sudo tee /etc/resolv.conf
 getent hosts www.ntic.local          # doit répondre SANS @
 ```
 
-**25. 🅰 envoie**
+**25. 🅰 envoie** ⏸ *pas nécessaire : 🅱 lit l'état dans ce document*
 > 🟢 **DNS OK**
 > `dig @192.168.137.10 www.ntic.local` → 192.168.137.20, 29/29 enregistrements validés.
 > 🅱 : bascule ton DNS sur le mien (25 bis), puis lance Apache.
@@ -533,12 +559,12 @@ avec le rapport de `scripts/90-collecte.sh SRV2`.
 ## Tableau de bord à copier dans le groupe
 
 ```
-RELAIS 0  Réseau ............ [ ] 🆆
-RELAIS 1  IP fixes .......... [ ] 🅰 [ ] 🅱
-RELAIS 2  DNS ............... [ ] 🅰   ← bloque tout
-RELAIS 3  Web + FTP ......... [ ] 🅱 [ ] 🆆
-RELAIS 4  Samba ............. [ ] 🅱 [ ] 🆆
-RELAIS 5  NFS ............... [ ] 🅱 [ ] 🅰
+RELAIS 0  Réseau ............ [x] 🆆
+RELAIS 1  IP fixes .......... [x] 🅰  [ ] 🅱
+RELAIS 2  DNS ............... [x] 🅰  ← 29/29, résolveur basculé
+RELAIS 3  Web + FTP ......... [ ] 🅱  [ ] 🆆
+RELAIS 4  Samba ............. [ ] 🅱  [ ] 🆆
+RELAIS 5  NFS ............... [ ] 🅱  [ ] 🅰
 RELAIS 6  TP3 + rapports .... [ ] 🆆
 ```
 
@@ -553,7 +579,7 @@ RELAIS 6  TP3 + rapports .... [ ] 🆆
 | 🅱 bloqué sur AppArmor | 🅱 | `sudo aa-complain /usr/sbin/smbd`, refaire le test, puis `sudo aa-enforce /usr/sbin/smbd` une fois réglé. |
 | 🆆 n'arrive pas à faire du DHCP depuis l'hôte | 🆆 | Documenter le test client Linux (déjà validé) + `ipconfig /all` montrant « DHCP activé : Oui ». Voir doc 04 §C.5. |
 | Le hotspot décroche | 🆆 | Vérifier la veille, puis relancer le partage. Les Linux font `sudo nmcli connection up "$CON"`. |
-| `ping 192.168.137.1` muet mais Internet OK | personne | **Ce n'est pas une panne** : pare-feu Windows = pas d'ICMP. Le juge c'est `ping 8.8.8.8` / `curl https://deb.debian.org`. Ne perds pas 30 min dessus. |
+| `ping 192.168.137.1` **ou** `ping 8.8.8.8` muets | personne | **Ce n'est pas une panne** : le hotspot Windows filtre l'ICMP. Le seul juge : `curl -sI https://deb.debian.org` → `HTTP/2 200`. Ne perds pas 30 min dessus. |
 | Internet OK mais `ping` entre A et B muet | 🅰 🅱 | Isolation client du hotspot. `sudo ufw disable` 2 min pour lever le doute, puis remettre. Sinon passer par `ssh`/`curl` pour prouver la connectivité TCP. |
 
 ## Règle d'or du relais

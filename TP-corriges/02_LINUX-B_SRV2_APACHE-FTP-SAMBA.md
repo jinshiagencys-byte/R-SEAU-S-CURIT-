@@ -52,7 +52,8 @@ sudo tee -a /etc/hosts >/dev/null <<'EOF'
 EOF
 
 # Contrôle : Internet (indispensable pour apt)
-ping -c2 8.8.8.8
+# Attention : ping 8.8.8.8 échoue sur ce réseau même quand tout marche (ICMP filtré).
+curl -sI --max-time 8 https://deb.debian.org | head -1
 ```
 
 > ⚠️ **DNS : `192.168.137.1` pour l'instant.** Tant que le Bind de SRV1 n'est pas démarré,

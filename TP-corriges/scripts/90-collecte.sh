@@ -44,14 +44,20 @@ ligne ""
 
 ligne "*Connectivité*"
 ligne '```'
-for cible in 192.168.137.1 192.168.137.10 192.168.137.20 8.8.8.8; do
+for cible in 192.168.137.1 192.168.137.10 192.168.137.20; do
     if ping -c1 -W2 "$cible" >/dev/null 2>&1; then
         ligne "ping ${cible} : OK"
     else
-        ligne "ping ${cible} : ECHEC"
+        ligne "ping ${cible} : pas de reponse ICMP (souvent normal : pare-feu Windows)"
     fi
 done
 ligne "arp/voisin 192.168.137.1 : $(ip neigh show 192.168.137.1 2>/dev/null || echo '(vide)')"
+ligne "--- Internet (TCP : c'est le test qui compte pour apt) ---"
+if curl -sI --max-time 8 https://deb.debian.org >/dev/null 2>&1; then
+    ligne "https deb.debian.org : OK"
+else
+    ligne "https deb.debian.org : ECHEC"
+fi
 ligne "--- résolution par le système (sans @) ---"
 getent hosts srv1.ofppt.local 2>/dev/null || ligne "getent srv1.ofppt.local : ECHEC"
 ligne '```'

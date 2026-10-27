@@ -167,8 +167,9 @@ sudo nmcli connection up "NOM_DU_WIFI"
 
 # 4. Vérifier
 ip -4 addr show ; ip route ; cat /etc/resolv.conf
-ping -c2 192.168.137.1     # passerelle Windows
-ping -c2 8.8.8.8           # Internet (depuis A et B)
+ping -c2 192.168.137.1                    # souvent muet : pare-feu Windows, pas une panne
+ping -c2 8.8.8.8                          # idem : ICMP filtré par le hotspot
+curl -sI --max-time 8 https://deb.debian.org | head -1   # ⬅️ le vrai test d'Internet
 ```
 
 > ⚠️ Sur Linux A, mettre `127.0.0.1` en premier DNS alors que Bind n'est pas encore installé

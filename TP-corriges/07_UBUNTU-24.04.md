@@ -701,7 +701,7 @@ sudo nmcli connection modify "$CON" \
      ipv4.dns-search "ofppt.local"
 sudo nmcli connection up "$CON"
 printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n192.168.137.1    pc01.ofppt.local pc01\n' | sudo tee -a /etc/hosts
-ping -c2 8.8.8.8                   # Internet : indispensable pour apt
+curl -sI --max-time 8 https://deb.debian.org | head -1   # Internet (TCP : le ping ICMP est filtré)
 
 # Le DNS de SRV1 n'est peut-être pas encore prêt : on bascule à l'étape 25 bis
 #   sudo nmcli connection modify "$CON" ipv4.dns "192.168.137.10,192.168.137.1"

@@ -57,45 +57,69 @@ GW="$(ip route | awk '/^default/ {print $3; exit}')"
 check "default via" "$PASSERELLE" "${GW:-aucune}"
 
 titre "4. Serveur DNS configuré"
-DNS="$(nmcli -g IP4.DNS device show 2>/dev/null | head -1 | cut -d'|' -f1)"
-[ -z "$DNS" ] && DNS="$(awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf)"
-echo "  DNS actuel : ${DNS:-aucun}"
-echo "  (192.168.137.1 attendu avant le TP4, 127.0.0.1 après)"
+DNS_RESOLV="$(awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null)"
+DNS_NM="$(nmcli -g IP4.DNS device show 2>/dev/null | head -1 | cut -d'|' -f1)"
+echo "  /etc/resolv.conf   : ${DNS_RESOLV:-aucun}   ← c'est celui qui compte"
+echo "  nmcli (config)     : ${DNS_NM:-aucun}"
+echo "  (192.168.137.1 avant le TP4, 127.0.0.1 après la bascule du doc 07 §3.7)"
+echo "  (les deux sont normaux après la bascule : NetworkManager garde son réglage,"
+echo "   mais dns=none empêche qu'il réécrive /etc/resolv.conf)"
 
-titre "5. Ping passerelle"
+titre "5. Passerelle $PASSERELLE (ICMP — informatif)"
 if ping -c2 -W2 "$PASSERELLE" >/dev/null 2>&1; then
-    vert "  [OK]   $PASSERELLE répond"
+    vert "  [OK]   $PASSERELLE répond au ping"
     OK=$((OK+1))
 else
-    rouge "  [ECHEC] $PASSERELLE ne répond pas"
-    KO=$((KO+1))
+    echo "  [INFO] pas de réponse ICMP — ce n'est PAS une panne."
+    echo "         Windows bloque les échos sur le partage de connexion (profil Public)."
+    NEIGH="$(ip neigh show "$PASSERELLE" 2>/dev/null)"
+    if [ -n "$NEIGH" ]; then
+        vert "         mais la machine est bien là : $NEIGH"
+    else
+        rouge "         et aucune entrée ARP : cette adresse n'existe pas sur ce réseau"
+        KO=$((KO+1))
+    fi
 fi
 
-titre "6. Internet (nécessaire pour apt)"
-if ping -c2 -W2 8.8.8.8 >/dev/null 2>&1; then
-    vert "  [OK]   8.8.8.8 répond — apt fonctionnera"
-    OK=$((OK+1))
-else
+titre "6. Internet (nécessaire pour apt) — test TCP, pas ICMP"
+INTERNET=0
+if curl -sI --max-time 8 https://deb.debian.org >/dev/null 2>&1; then
+    vert "  [OK]   https://deb.debian.org répond — apt fonctionnera"
+    INTERNET=1
+elif dig +short +time=3 +tries=1 @"$PASSERELLE" deb.debian.org 2>/dev/null | grep -qE '^[0-9]+\.'; then
+    vert "  [OK]   DNS résolu via $PASSERELLE — apt fonctionnera"
+    INTERNET=1
+elif ping -c2 -W2 8.8.8.8 >/dev/null 2>&1; then
+    vert "  [OK]   ICMP vers 8.8.8.8 — Internet présent"
+    INTERNET=1
+fi
+if [ "$INTERNET" -eq 0 ]; then
     rouge "  [ECHEC] pas d'Internet : apt échouera"
+    echo "         → le hotspot Windows est-il allumé ?"
+    echo "         → VPN/WARP connecté ? (warp-cli disconnect)"
     KO=$((KO+1))
+else
+    OK=$((OK+1))
 fi
+echo "  (le ping vers 8.8.8.8 peut échouer alors qu'Internet marche : ICMP filtré)"
 
-titre "7. Ping de l'autre serveur ($AUTRE_IP)"
+titre "7. L'autre serveur ($AUTRE_IP) — informatif"
 if ping -c2 -W2 "$AUTRE_IP" >/dev/null 2>&1; then
-    vert "  [OK]   $AUTRE_IP répond — le LAN est bon"
+    vert "  [OK]   $AUTRE_IP répond au ping"
     OK=$((OK+1))
 else
-    rouge "  [INFO] $AUTRE_IP ne répond pas encore"
+    echo "  [INFO] pas de réponse ICMP de $AUTRE_IP"
     echo "         → normal si l'autre machine n'a pas fini sa phase 1"
     echo "         → si elle l'a finie : isolation client du hotspot, ou ufw"
+    echo "         → test TCP plus fiable :  timeout 3 bash -c \"</dev/tcp/$AUTRE_IP/22\" "
 fi
 
 titre "8. Résolution de nom locale"
-if getent hosts srv1.ofppt.local >/dev/null 2>&1; then
-    vert "  [OK]   /etc/hosts contient srv1.ofppt.local"
+if getent hosts "$ATTENDU" >/dev/null 2>&1; then
+    vert "  [OK]   /etc/hosts contient $ATTENDU"
     OK=$((OK+1))
 else
-    rouge "  [ECHEC] /etc/hosts incomplet"
+    rouge "  [ECHEC] /etc/hosts incomplet (ligne manquante pour $ATTENDU)"
     KO=$((KO+1))
 fi
 
