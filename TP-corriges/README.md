@@ -10,12 +10,14 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 
 ## Par où commencer
 
-1. **`00_PLAN_ET_RESEAU.md`** — à lire en premier, à faire ensemble (30 min).
+1. **`08_QUI_FAIT_QUOI.md`** — le chef d'orchestre : 8 phases, qui fait quoi, qui bloque
+   qui, et la porte de sortie de chaque phase. **Commence par ça.**
+2. **`00_PLAN_ET_RESEAU.md`** — à lire en premier, à faire ensemble (30 min).
    Architecture du labo, plan d'adressage, répartition, règles de survie.
-2. **`07_UBUNTU-24.04.md`** — **obligatoire si ta machine n'est pas CentOS 7** : c'est la
+3. **`07_UBUNTU-24.04.md`** — **obligatoire si ta machine n'est pas CentOS 7** : c'est la
    version exécutable (bind9, isc-dhcp-server, apache2, ufw, AppArmor, systemd-resolved) et
    le tableau de correspondance CentOS ↔ Ubuntu pour les rapports.
-3. Puis chaque machine prend son document :
+4. Puis chaque machine prend son document :
 
 | Document | Qui | Contenu |
 |---|---|---|
@@ -27,6 +29,7 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `05_CHECKLIST_RENDU.md` | tous | planning, checklist, incohérences, questions théoriques |
 | `06_MESSAGES_EQUIPE.md` | — | messages prêts à copier-coller |
 | `07_UBUNTU-24.04.md` | Linux A **et** Linux B | **commandes et fichiers de conf réels pour Ubuntu** (§12 = runbook complet de SRV2) |
+| `08_QUI_FAIT_QUOI.md` | tous | **ordre d'exécution en 8 phases, par machine, avec les portes de sortie** |
 
 ## L'architecture en une image
 
