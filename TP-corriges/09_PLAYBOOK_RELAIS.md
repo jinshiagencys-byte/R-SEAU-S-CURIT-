@@ -16,7 +16,7 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 |---|---|---|
 | RELAIS 0 — réseau du labo | ✅ | hotspot `MID-SAMA 6482`, passerelle `192.168.137.1` joignable en ARP |
 | RELAIS 1 — socle de 🅰 (5 à 8) | ✅ | `srv1.ofppt.local`, `192.168.137.10/24` sur `wlp2s0`, route par défaut |
-| RELAIS 1 — socle de 🅱 (9 à 10) | ⏳ | `192.168.137.20` ne répond pas encore |
+| RELAIS 1 — socle de 🅱 (9 à 10) | 🟡 | *déclaré* dans l'issue #1 (17/10, auteur `precieuxboko-create`) : `nmcli up` OK, `curl deb.debian.org` → `HTTP/2 200`. **Non prouvé** : `hostname -f`, `ip -4 a`, `ip r` non fournis ; et `192.168.137.20` ne répond ni en ARP ni en TCP depuis SRV1 |
 | RELAIS 2 — DNS de 🅰 (12 à 21) | ✅ | `PHASE 2 VALIDÉE — 29 contrôles OK` |
 | RELAIS 2 — bascule du résolveur (24) | ✅ | `resolv.conf` → `127.0.0.1`, `getent hosts www.ntic.local` répond |
 | RELAIS 2 — test depuis 🅱 et 🆆 (23) | 🟡 | fait depuis SRV1 sur sa propre IP uniquement |
@@ -30,6 +30,27 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 > `ping 192.168.137.1` et `ping 8.8.8.8` échouent tous les deux alors que tout fonctionne
 > (le hotspot Windows filtre l'ICMP). Le test valable est **TCP** :
 > `curl -sI --max-time 8 https://deb.debian.org` → `HTTP/2 200`.
+
+### Journal des retours
+
+| Quand | Qui | Quoi | Verdict |
+|---|---|---|---|
+| 17/10 | 🅱 (`precieuxboko-create`) | issue #1 « premier code » : étape 9, `nmcli up` + `curl deb.debian.org` → `HTTP/2 200` | 🟡 socle déclaré OK, **preuves incomplètes** (pas de `hostname -f`, `ip -4 a`, `ip r`, ni script) |
+| 17/25 | 🅰 | contrôle croisé depuis SRV1 : `192.168.137.20` → pas d'entrée ARP, ICMP muet, TCP 22/80/443/445/2049 fermés | ⛔ 🅱 n'est pas (ou plus) sur le réseau au moment du contrôle |
+
+**Ce qui manque pour valider l'étape 9 de 🅱** — 3 commandes, à faire quand il est reconnecté :
+
+```bash
+hostname -f                       # srv2.ofppt.local
+ip -4 a | grep 192.168.137.20     # 192.168.137.20/24 présent
+ip r | grep default               # default via 192.168.137.1
+```
+
+> 🔎 **Point de vigilance** : il a utilisé `"$CON"` (le **nom** du profil) et non l'**UUID**.
+> C'est exactement le piège qui a fait dériver 🅰 (`VERECHAGUINE SIEGE 2` → `MID-SAMA 6482`).
+> S'il s'est reconnecté ailleurs depuis, son IP `.20` est peut-être posée sur le mauvais
+> profil. À vérifier avec `nmcli -f NAME,UUID connection show | grep -i -B1 -A0 ""` puis
+> `nmcli -g GENERAL.CONNECTION,IP4.ADDRESS device show <interface>`.
 
 ---
 
