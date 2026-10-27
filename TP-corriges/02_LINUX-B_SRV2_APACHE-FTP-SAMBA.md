@@ -41,7 +41,7 @@ sudo hostnamectl set-hostname srv2.ofppt.local
 CON="$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
 sudo nmcli connection modify "$CON" \
      ipv4.method manual ipv4.addresses 192.168.137.20/24 \
-     ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.10,192.168.137.1" \
+     ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.1" \
      ipv4.dns-search "ofppt.local"
 sudo nmcli connection up "$CON"
 
@@ -51,9 +51,21 @@ sudo tee -a /etc/hosts >/dev/null <<'EOF'
 192.168.137.1    pc01.ofppt.local pc01
 EOF
 
-# Contrôle : le DNS du labo répond ?
-dig www.ntic.local +short        # doit renvoyer 192.168.137.20
+# Contrôle : Internet (indispensable pour apt)
+ping -c2 8.8.8.8
 ```
+
+> ⚠️ **DNS : `192.168.137.1` pour l'instant.** Tant que le Bind de SRV1 n'est pas démarré,
+> mettre `192.168.137.10` en premier DNS fait attendre 5 s à chaque résolution (et ralentit
+> `apt`). Dès que 🅰 annonce que le DNS est opérationnel, bascule :
+>
+> ```bash
+> sudo nmcli connection modify "$CON" ipv4.dns "192.168.137.10,192.168.137.1"
+> sudo nmcli connection up "$CON"
+> dig www.ntic.local +short        # doit renvoyer 192.168.137.20
+> ```
+>
+> Ne **coupe pas** `systemd-resolved` sur SRV2 : c'est un client, pas le serveur.
 
 Rappel CentOS 7 en fin de vie (si `yum` échoue) : voir `00_PLAN_ET_RESEAU.md` §6.1.
 

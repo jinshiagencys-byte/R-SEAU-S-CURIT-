@@ -122,7 +122,37 @@ ping -c2 8.8.8.8         # ⬅️ C'EST CE TEST QUI DÉCIDE (apt en dépend)
 >   Si `ip neigh` reste vide après un ping : rien ne répond en 192.168.137.1 → tu n'es pas
 >   sur le partage de connexion Windows (ou il est éteint).
 
-**9. 🅱 Refait les étapes 5 à 8** avec `.20`, `srv2.ofppt.local`, et **le même bloc `/etc/hosts`**.
+**9. 🅱 Refait les étapes 5 à 8**, avec ses propres valeurs :
+
+```bash
+sudo hostnamectl set-hostname srv2.ofppt.local
+
+UUID="$(nmcli -g UUID,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+sudo nmcli connection modify "$UUID" ipv4.method manual ipv4.addresses 192.168.137.20/24 \
+     ipv4.gateway 192.168.137.1 ipv4.dns 192.168.137.1 ipv4.dns-search ofppt.local
+sudo nmcli connection up "$UUID"
+
+sudo tee -a /etc/hosts >/dev/null <<'EOF'
+192.168.137.10   srv1.ofppt.local srv1
+192.168.137.20   srv2.ofppt.local srv2
+192.168.137.1    pc01.ofppt.local pc01
+EOF
+
+hostname -f
+ip -4 a | grep 192.168.137.20
+ip r | grep default
+ping -c2 8.8.8.8
+
+# le contrôle automatique de la phase 1
+git clone https://github.com/jinshiagencys-byte/R-SEAU-S-CURIT-.git ~/tp-reseau 2>/dev/null \
+  || (cd ~/tp-reseau && git pull)
+bash ~/tp-reseau/TP-corriges/scripts/00-verif-reseau.sh 192.168.137.20
+```
+
+> ⚠️ **`ipv4.dns 192.168.137.1` à ce stade, comme 🅰.** Ne mets **pas** encore
+> `192.168.137.10` : le Bind de 🅰 ne tourne pas encore, et chaque résolution attendrait
+> 5 secondes avant de basculer sur la passerelle (et `apt` ramperait). La bascule se fait à
+> l'**étape 25 bis**, quand 🅰 annonce `🟢 DNS OK`.
 
 **10. 🅰 et 🅱 : ping croisé**
 ```bash
@@ -257,8 +287,24 @@ getent hosts www.ntic.local          # doit répondre SANS @
 
 **25. 🅰 envoie**
 > 🟢 **DNS OK**
-> `dig @192.168.137.10 www.ntic.local` → 192.168.137.20, vérifié depuis SRV1, SRV2 et Windows.
-> 29/29 enregistrements validés. 🅱 : tu peux lancer Apache.
+> `dig @192.168.137.10 www.ntic.local` → 192.168.137.20, 29/29 enregistrements validés.
+> 🅱 : bascule ton DNS sur le mien (25 bis), puis lance Apache.
+
+**25 bis. 🅱 bascule sur le DNS de 🅰** — juste après le message `🟢 DNS OK`
+
+```bash
+UUID="$(nmcli -g UUID,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+sudo nmcli connection modify "$UUID" ipv4.dns "192.168.137.10,192.168.137.1"
+sudo nmcli connection up "$UUID"
+
+cat /etc/resolv.conf          # 192.168.137.10 doit être le 1er nameserver
+dig www.ntic.local +short     # → 192.168.137.20   (sans @ : c'est le vrai test)
+dig www.tri.local +short      # → 192.168.137.20
+```
+
+> 🅱 **garde** `systemd-resolved` : en tant que client, il lit les DNS fournis par
+> NetworkManager, c'est exactement ce qu'on veut. Seul 🅰 le neutralise, parce que c'est lui
+> qui héberge le serveur. Si 🅱 le coupe aussi, il se retrouve sans résolveur.
 
 🟢 **Fin du relais 2.** Le bâton passe à 🅱.
 
@@ -452,6 +498,35 @@ Capture des logs DORA (`journalctl -u dhcpd`), du fichier de baux, du `ipconfig 
 > 🟢 **RENDU PRÊT** — 6 `.doc` + `ScTP5.txt` + `ScTP6.txt` + captures numérotées.
 
 **61. Tous : relecture finale** → **doc 05 §5** (10 minutes).
+
+---
+
+## Si tu es 🅱, tu n'as que ces blocs à exécuter
+
+Tu peux ignorer tout le reste du document. Dans l'ordre, et **seulement** quand la condition
+de la 2e colonne est remplie :
+
+| Étape | Déclencheur | Quoi | Contenu |
+|---|---|---|---|
+| **9** | 🆆 a annoncé `RELAIS 0` | nom `srv2`, IP `.20`, `/etc/hosts`, `00-verif-reseau.sh` | §9 |
+| **19** | juste après | `apt install` de tous les paquets | §19 |
+| **20** | juste après | groupes, comptes, `smbpasswd`, arborescence | §20 |
+| **25 bis** | 🅰 a annoncé `🟢 DNS OK` | bascule DNS → `192.168.137.10` | §25 bis |
+| **26-29** | après 25 bis | Apache : 2 vhosts, pages, certificat | doc 07 §5 · doc 02 §A |
+| **33-37** | 🆆 a annoncé `WEB VALIDÉ` | FTP : `script ScTP6.txt`, vsftpd, comptes | doc 07 §6 · doc 02 §B |
+| **40-43** | 🆆 a annoncé `FTP VALIDÉ` | Samba + AppArmor | doc 07 §7 · doc 02 §C |
+| **47-48** | 🆆 a annoncé `SAMBA VALIDÉ` | exports NFS + envoi de l'UID de `khadija` | doc 03 §2 |
+
+**Ce que 🅱 n'a PAS à faire** (erreurs classiques) :
+
+- ❌ installer `bind9` — c'est 🅰
+- ❌ couper `systemd-resolved` — c'est 🅰 aussi ; 🅱 en a besoin pour résoudre
+- ❌ configurer le partage de connexion — c'est 🆆
+- ❌ mettre `192.168.137.10` comme DNS avant l'étape 25 bis
+- ❌ toucher au profil Wi-Fi d'une autre machine
+
+Chaque blocage se signale par une **Issue GitHub** (modèle dans `06_MESSAGES_EQUIPE.md`),
+avec le rapport de `scripts/90-collecte.sh SRV2`.
 
 ---
 

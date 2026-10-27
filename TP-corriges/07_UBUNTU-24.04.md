@@ -697,15 +697,19 @@ echo "Profil utilisé : $CON"
 
 sudo nmcli connection modify "$CON" \
      ipv4.method manual ipv4.addresses 192.168.137.20/24 \
-     ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.10,192.168.137.1" \
+     ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.1" \
      ipv4.dns-search "ofppt.local"
 sudo nmcli connection up "$CON"
-printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n' | sudo tee -a /etc/hosts
-dig www.ntic.local +short          # doit renvoyer 192.168.137.20 — sinon attends Linux A
+printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n192.168.137.1    pc01.ofppt.local pc01\n' | sudo tee -a /etc/hosts
+ping -c2 8.8.8.8                   # Internet : indispensable pour apt
+
+# Le DNS de SRV1 n'est peut-être pas encore prêt : on bascule à l'étape 25 bis
+#   sudo nmcli connection modify "$CON" ipv4.dns "192.168.137.10,192.168.137.1"
+#   sudo nmcli connection up "$CON" && dig www.ntic.local +short   # → 192.168.137.20
 
 sudo apt update
 sudo apt install -y apache2 vsftpd samba samba-client cifs-utils \
-                    nfs-kernel-server nfs-common net-tools dnsutils curl
+                    nfs-kernel-server nfs-common net-tools dnsutils curl git
 
 # ---------- 1. TP5 : Apache + SSL (§5) ----------
 sudo a2enmod ssl
