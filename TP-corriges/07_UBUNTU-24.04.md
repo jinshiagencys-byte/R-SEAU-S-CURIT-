@@ -157,7 +157,11 @@ sudo tee /etc/bind/named.conf.options >/dev/null <<'EOF'
 options {
     directory "/var/cache/bind";
 
-    listen-on port 53 { any; };
+    /* Adresses explicites plutôt que "any" : sur Ubuntu, 127.0.0.53:53 est déjà
+       occupé par systemd-resolved. Avec "any" (bind sur 0.0.0.0:53), named peut
+       refuser de démarrer : "could not listen on UDP socket: address in use".
+       127.0.0.1 et 192.168.137.10 ne sont pas en conflit avec 127.0.0.53. */
+    listen-on port 53 { 127.0.0.1; 192.168.137.10; };
     listen-on-v6 { none; };
     allow-query { any; };
     recursion yes;

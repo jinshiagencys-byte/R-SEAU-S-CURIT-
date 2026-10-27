@@ -148,6 +148,14 @@ Si ça échoue alors qu'Internet fonctionne sur les deux : isolation client du h
 > 🅱 pendant ce temps : étapes 19-20 (installer les paquets). Ça ne casse pas le relais.
 > 🆆 pendant ce temps : RELAIS 6 partie A (installer VirtualBox + ISO). Indépendant.
 
+> ⚠️ **Avant de commencer : coupe les VPN** (`CloudflareWARP`, ProtonVPN, NordVPN…).
+> WARP capture le trafic UDP/TCP 53 et le redirige vers 1.1.1.1 : `dig @192.168.137.10`
+> renverra alors des réponses de Cloudflare et tu croiras que Bind est cassé.
+> ```bash
+> warp-cli status            # Connected ? -> warp-cli disconnect
+> warp-cli disconnect
+> ```
+
 **12. 🅰 Installe bind9 — AVANT de toucher au résolveur**
 ```bash
 sudo apt update
