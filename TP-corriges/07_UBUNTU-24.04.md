@@ -575,18 +575,125 @@ Ubuntu, il n'y a pas de SELinux, et la bonne pratique est de garder AppArmor act
 
 ## 11. Ce qui change dans la répartition
 
-| Qui | Machine | Système | Docs à utiliser |
-|---|---|---|---|
-| Linux A (toi) | SRV1 | **Ubuntu 24.04** | `00` + `07` §1-3 + `01` (logique/rapport) |
-| Linux B | SRV2 | Ubuntu ou CentOS — à préciser | `00` + `07` (si Ubuntu) ou `02` tel quel (si CentOS) |
-| Windows | PC01 | Windows | `04` (VM CentOS 7, indépendant de l'hôte) |
+**Les deux machines Linux sont sous Ubuntu 24.04.5 LTS.** Aucune des deux n'exécute de
+commandes CentOS : les documents 01, 02 et 03 ne servent plus qu'à rédiger les rapports
+(logique, contenu des fichiers, questions), et `07` est le seul chemin d'exécution.
 
-**Demande à Linux B son `cat /etc/os-release` avant de lui envoyer le doc 02.** S'il est
-sous Ubuntu, il utilise `07` ; sous CentOS, `02` directement.
+| Qui | Machine | Système | Pour exécuter | Pour le rapport |
+|---|---|---|---|---|
+| Linux A | SRV1 | Ubuntu 24.04 | `07` §1-3 | `01` |
+| Linux B | SRV2 | Ubuntu 24.04 | `07` §12 (runbook complet) | `02` |
+| Les deux | NFS | Ubuntu 24.04 | `07` §8 | `03` |
+| Windows | PC01 | Windows | `04` (VM CentOS 7, indépendant de l'hôte) | `04` |
+
+**Conséquence pour les rapports** : les énoncés sont écrits pour CentOS, vous exécutez sur
+Ubuntu. Ce n'est pas une faute — c'est un écart, et un écart documenté rapporte des points.
+Dans chaque rapport, une section « environnement » avec :
+
+1. le tableau de correspondance (§0) ;
+2. les 3 différences qui ont réellement compté pour ce TP (ex. TP9 : AppArmor au lieu de
+   `chcon` + `setsebool`) ;
+3. une phrase de conclusion : « les services et les fichiers de configuration sont
+   identiques ; seuls le gestionnaire de paquets, les chemins et le module de sécurité
+   diffèrent, ce qui n'affecte pas les mécanismes étudiés ».
 
 ---
 
-## 12. Récapitulatif des paquets à installer
+## 12. Runbook SRV2 (Linux B) — dans l'ordre, sur Ubuntu
+
+Version condensée : les commandes dans l'ordre d'exécution, sans le blabla. Le détail et les
+explications de chaque étape sont dans les sections indiquées.
+
+```bash
+# ---------- 0. Socle ----------
+sudo hostnamectl set-hostname srv2.ofppt.local
+nmcli -t -f NAME,DEVICE connection show --active
+sudo nmcli connection modify "NOM_DU_WIFI" \
+     ipv4.method manual ipv4.addresses 192.168.137.20/24 \
+     ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.10,192.168.137.1" \
+     ipv4.dns-search "ofppt.local"
+sudo nmcli connection up "NOM_DU_WIFI"
+printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n' | sudo tee -a /etc/hosts
+dig www.ntic.local +short          # doit renvoyer 192.168.137.20 — sinon attends Linux A
+
+sudo apt update
+sudo apt install -y apache2 vsftpd samba samba-client cifs-utils \
+                    nfs-kernel-server nfs-common net-tools dnsutils curl
+
+# ---------- 1. TP5 : Apache + SSL (§5) ----------
+sudo a2enmod ssl
+sudo a2dissite 000-default
+sudo mkdir -p /var/www/html/{tri,ntic} /var/log/apache2/{tri,ntic} /etc/apache2/ssl
+# → créer /etc/apache2/sites-available/tri.conf et ntic.conf (contenu §5.2)
+# → créer les 2 index.html (contenu doc 02 §A.4)
+sudo a2ensite tri.conf ntic.conf
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+     -out /etc/apache2/ssl/server.crt -keyout /etc/apache2/ssl/server.key \
+     -subj "/C=MA/ST=Oujda/L=Oujda/O=OFPPT/OU=TRI/CN=www.ntic.local"
+sudo apache2ctl configtest && sudo systemctl reload apache2
+curl -s http://www.tri.local | grep -o 'Bienvenue.*Offshore'
+curl -sI http://www.ntic.local | head -3      # doit renvoyer 301 -> https
+
+# ---------- 2. TP6 : vsftpd (§6) — script AVANT tout ----------
+script ScTP6.txt
+sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.orig
+# → coller /etc/vsftpd.conf (doc 02 §B.2) en corrigeant :
+#     userlist_file=/etc/vsftpd.user_list
+sudo useradd -m -s /bin/bash ftpaccess && echo 'ftpaccess:eff2017v31' | sudo chpasswd
+sudo useradd -m -s /bin/bash tri       && echo 'tri:ofppt'  | sudo chpasswd
+sudo useradd -m -s /bin/bash ntic      && echo 'ntic:ofppt' | sudo chpasswd
+echo 'ftpaccess' | sudo tee -a /etc/ftpusers        # ← Ubuntu, pas /etc/vsftpd/ftpusers
+sudo systemctl enable --now vsftpd
+sudo ufw allow 21/tcp && sudo ufw allow 30000:30100/tcp
+ftp 127.0.0.1        # ftpaccess OK, root refusé
+exit                 # fin du script ScTP6.txt
+
+# ---------- 3. TP9 : Samba (§7) ----------
+sudo groupadd recherche ; sudo groupadd controle
+sudo useradd -m -G recherche hiba
+sudo useradd -m -G controle  wahid
+sudo useradd -m -G controle  hamid
+echo 'hiba:Ofppt2026!' | sudo chpasswd
+echo 'wahid:Ofppt2026!' | sudo chpasswd
+echo 'hamid:Ofppt2026!' | sudo chpasswd
+sudo smbpasswd -a hiba ; sudo smbpasswd -a wahid ; sudo smbpasswd -a hamid
+sudo mkdir -p /decouverte
+echo "TP Samba" | sudo tee /decouverte/tp.txt
+echo "Cours" | sudo tee /decouverte/cour.txt
+sudo chown root:controle /decouverte && sudo chmod 2775 /decouverte
+sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.orig
+# → /etc/samba/smb.conf (doc 02 §C.3)
+sudo testparm -s
+sudo tee -a /etc/apparmor.d/local/usr.sbin.smbd >/dev/null <<'EOF'
+
+/decouverte/ rwk,
+/decouverte/** rwk,
+EOF
+sudo apparmor_parser -r /etc/apparmor.d/usr.sbin.smbd
+sudo systemctl enable --now smbd nmbd && sudo systemctl restart smbd
+sudo ufw allow Samba
+smbclient -L localhost -U hiba
+smbclient //localhost/decouverte -U wahid     # mkdir doit réussir
+smbclient //localhost/decouverte -U hiba      # mkdir doit échouer (ACCESS_DENIED)
+
+# ---------- 4. TP8 : serveur NFS (§8) ----------
+sudo mkdir -p /home/{projet,data,tri,ntic}
+sudo useradd -m khadija ; echo 'khadija:Ofppt2026!' | sudo chpasswd
+sudo chown root:root /home/projet && sudo chmod 755 /home/projet
+sudo chown root:root /home/data   && sudo chmod 755 /home/data
+sudo chown khadija:khadija /home/tri && sudo chmod 755 /home/tri
+sudo chown root:root /home/ntic   && sudo chmod 755 /home/ntic
+# → /etc/exports (doc 03 §2.3)
+sudo exportfs -rav && sudo exportfs -v && showmount -e localhost
+id khadija            # noter l'UID : Linux A doit créer le même
+```
+
+**Ordre de passage à Linux A** : dès que `dig www.ntic.local` répond (étape 0), tu peux
+lancer Apache. Préviens-le quand `showmount -e` est prêt, il a besoin de `khadija` côté A.
+
+---
+
+## 13. Récapitulatif des paquets à installer
 
 ```bash
 # SRV1 (DNS)

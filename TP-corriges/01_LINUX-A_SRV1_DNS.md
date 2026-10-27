@@ -7,10 +7,24 @@ TP6 partie 1.
 
 **Durée :** ~1 h 30. **À faire en premier** : tout le reste en dépend.
 
-> ⚠️ Commandes écrites pour **CentOS 7**. Si ta machine est sous **Ubuntu 24.04**, exécute
-> la version équivalente du document **`07_UBUNTU-24.04.md`** §2-3 (bind9, `systemd-resolved`,
-> `/etc/bind/named.conf.local`, AppArmor) : la logique et les fichiers de zone sont
-> identiques, seuls les chemins changent. Ce document-ci reste la référence pour le rapport.
+> ## 🚨 SRV1 EST SOUS UBUNTU 24.04
+>
+> **Ce document n'est pas à exécuter tel quel** : il est écrit pour CentOS 7 et sert de
+> **référence pour le rapport**. Les commandes réelles sont dans **`07_UBUNTU-24.04.md`** :
+>
+> | Étape | CentOS (ici) | Ubuntu (à exécuter) |
+> |---|---|---|
+> | Réseau, hostname | §1 | `07` **§1** |
+> | Installation | `yum install bind bind-utils` | `07` **§3.1** (`apt install bind9 bind9utils bind9-dnsutils`) |
+> | Config générale | `/etc/named.conf` §3 | `07` **§3.2** (`/etc/bind/named.conf.options`) |
+> | Déclaration des zones | §3 | `07` **§3.3** (`/etc/bind/named.conf.local`) |
+> | Fichiers de zone | `/var/named/` §4-5 | `07` **§3.4** (`/etc/bind/zones/`) |
+> | Contrôles | §6 | `07` **§3.5** (identiques) |
+> | Tests | §8 | `07` **§3.6** (ajouter `@127.0.0.1`) |
+>
+> Le contenu des zones est **identique** ; le piège Ubuntu est `systemd-resolved` qui occupe
+> déjà le port 53 (`07` §2).
+
 
 
 > Ne pas oublier : `script ScTP5.txt` si vous voulez aussi la trace pour le TP5 (le TP4 n'en

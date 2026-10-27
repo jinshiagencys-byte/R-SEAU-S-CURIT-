@@ -26,7 +26,7 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `04_WINDOWS_PC01_TP3_ET_TESTS.md` | Windows | TP3 en VM, tests clients, captures, rapports |
 | `05_CHECKLIST_RENDU.md` | tous | planning, checklist, incohérences, questions théoriques |
 | `06_MESSAGES_EQUIPE.md` | — | messages prêts à copier-coller |
-| `07_UBUNTU-24.04.md` | Linux A (et B si Ubuntu) | **commandes et fichiers de conf réels pour Ubuntu** |
+| `07_UBUNTU-24.04.md` | Linux A **et** Linux B | **commandes et fichiers de conf réels pour Ubuntu** (§12 = runbook complet de SRV2) |
 
 ## L'architecture en une image
 

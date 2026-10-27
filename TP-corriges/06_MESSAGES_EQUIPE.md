@@ -32,31 +32,36 @@ Version courte à leur envoyer sur WhatsApp/Telegram, et les consignes précises
 > rapports.
 >
 > **Envoie-moi ton `cat /etc/os-release`** pour que je te dise quel doc utiliser.
+> → Réponse : les deux machines Linux sont sous **Ubuntu 24.04.5 LTS**. Donc pour vous deux,
+> c'est `07_UBUNTU-24.04.md` qu'on exécute ; les docs 01/02/03 ne servent qu'aux rapports.
 
 ---
 
 ## Pour Linux B (SRV2)
 
-> Tu prends **SRV2** = 192.168.137.20. Ton doc : `02_LINUX-B_SRV2_APACHE-FTP-SAMBA.md`.
+> Tu prends **SRV2** = 192.168.137.20. Tu es sous **Ubuntu 24.04** comme moi, donc tu
+> n'utilises pas le doc CentOS : ton runbook complet est **`07_UBUNTU-24.04.md` §12**.
+> Il déroule tout dans l'ordre (réseau → Apache → FTP → Samba → NFS). Le doc `02` ne sert
+> que pour rédiger le rapport (contenu des fichiers de conf, questions).
 >
 > Ce que tu as à faire, dans l'ordre :
-> 1. Réseau + nom `srv2.ofppt.local` (doc 00 §5.2, puis doc 02 §0). Vérifie avec
+> 1. Réseau + nom `srv2.ofppt.local` (doc `07` §12, étape 0). Vérifie avec
 >    `dig www.ntic.local +short` → ça doit renvoyer 192.168.137.20 (c'est mon serveur DNS,
 >    il faut que je l'aie fini, sinon attends 20 min).
 > 2. **TP5 – Apache** : 2 sites `www.tri.local` et `www.ntic.local` sur la même IP, puis
 >    SSL + redirection http→https sur ntic.
 > 3. **TP6 – FTP** : vsftpd. ⚠️ Lance `script ScTP6.txt` **avant** la première commande,
->    l'énoncé l'exige. Pareil pour le TP5 (`script ScTP5.txt`).
+>    l'énoncé l'exige.
 > 4. **TP9 – Samba** : groupes recherche/controle, partage `/decouverte`, droits ro/rw.
 > 5. Envoie-moi les captures au fur et à mesure : j'ai besoin de celles du TP8 (NFS) pour
 >    mon rapport, et il faut que ça soit fait quand je monte tes partages.
 >
-> Deux trucs que l'énoncé demande et qu'il ne faut **pas** faire littéralement : ne
-> désactive pas SELinux et n'arrête pas le pare-feu. Le doc donne les booléens et les
-> `firewall-cmd` à la place — c'est mieux noté et ça ne flingue pas ton PC.
+> Trois pièges Ubuntu (tous traités dans `07`) : `systemd-resolved` occupe le port 53,
+> AppArmor bloque le partage Samba dans `/decouverte`, et la liste de refus FTP est
+> `/etc/ftpusers` et non `/etc/vsftpd/ftpusers`.
 >
-> Si tu es sous **Ubuntu** : même chose avec AppArmor et `ufw`, les commandes exactes sont
-> dans `07_UBUNTU-24.04.md` §7 (le piège du partage Samba dans `/decouverte` y est).
+> Ne désactive pas AppArmor et n'arrête pas `ufw` : le doc donne les règles exactes. C'est
+> mieux noté et ça ne flingue pas ton PC.
 
 ---
 

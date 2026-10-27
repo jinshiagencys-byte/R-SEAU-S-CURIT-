@@ -88,10 +88,15 @@ Zones DNS hébergées par SRV1 (toutes sur la même instance Bind) :
 
 | Qui | Machine | TPs | Document |
 |---|---|---|---|
-| Linux A | SRV1 | TP4 (DNS maître) + TP5 partie 1 (zones ntic/tri) + TP6 partie 1 | `01` |
-| Linux B | SRV2 | TP5 (Apache + SSL), TP6 (FTP), TP9 (Samba), DNS esclave | `02` |
-| Les deux | A monte / B exporte | TP8 (NFS) | `03` |
+| Linux A | SRV1 | TP4 (DNS maître) + TP5 partie 1 (zones ntic/tri) + TP6 partie 1 | `07` §1-3 → exécution · `01` → rapport |
+| Linux B | SRV2 | TP5 (Apache + SSL), TP6 (FTP), TP9 (Samba), DNS esclave | `07` §12 → exécution · `02` → rapport |
+| Les deux | A monte / B exporte | TP8 (NFS) | `07` §8 → exécution · `03` → rapport |
 | Windows | PC01 | TP3 (DHCP, en VM) + tests clients de tout + rapports `.doc` + captures | `04` |
+
+**Les deux postes Linux sont sous Ubuntu 24.04.5 LTS.** Les documents 01/02/03 sont écrits
+pour CentOS 7 (le système des énoncés) : ils servent à comprendre et à rédiger, pas à taper
+les commandes. Le tableau de correspondance CentOS ↔ Ubuntu est en tête du document 07.
+
 
 Puis : `05_CHECKLIST_RENDU.md` pour ne rien oublier avant de rendre.
 

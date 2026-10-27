@@ -1,17 +1,33 @@
 # 02 — Linux B / SRV2 : Apache, FTP, Samba (+ DNS esclave)
 
+> ## 🚨 SRV2 EST SOUS UBUNTU 24.04
+>
+> **Ce document n'est pas à exécuter tel quel.** Il est écrit pour CentOS 7 : il sert de
+> **référence pour la rédaction du rapport** (logique, contenu des fichiers, questions).
+>
+> Les commandes à taper réellement sont dans **`07_UBUNTU-24.04.md`** :
+>
+> | Partie | Sujet | Où exécuter |
+> |---|---|---|
+> | A | Apache + SSL (TP5 p.2-4) | `07` **§5** |
+> | B | vsftpd (TP6 p.2-4) | `07` **§6** |
+> | C | Samba (TP9) | `07` **§7** |
+> | D | DNS esclave (TP4-2 §IV) | `07` **§3** (adapter en `type slave`) |
+> | — | Pare-feu | `07` **§9** (ufw, pas firewalld) |
+> | — | Sécurité | `07` **§10** (AppArmor, pas SELinux) |
+>
+> Le contenu des fichiers de configuration (`smb.conf`, `vsftpd.conf`, `vhosts`) est
+> **identique** : seuls les chemins, les noms de paquets et le module de sécurité changent.
+> Le déroulé complet, dans l'ordre, est en **`07` §13**.
+
 **Couvre :** TP5 parties 2, 3 et 4 (Apache + SSL) · TP6 parties 2, 3 et 4 (FTP) ·
 TP9 (Samba) · TP4-2 §IV (DNS secondaire, bonus).
 
 **Machine :** `srv2.ofppt.local` — `192.168.137.20/24` — passerelle `192.168.137.1` —
-DNS `192.168.137.10`.
+DNS `192.168.137.10` — **Ubuntu 24.04.5 LTS**.
 
 **À faire après le document 01** : SRV1 doit déjà répondre pour `www.tri.local`,
 `www.ntic.local`, `ftp.ofppt.local`.
-
-> ⚠️ Commandes écrites pour **CentOS 7**. Sous **Ubuntu 24.04** : prends
-> **`07_UBUNTU-24.04.md`** §5 (apache2), §6 (vsftpd, `/etc/vsftpd.conf` et `/etc/ftpusers`),
-> §7 (Samba + AppArmor) — le contenu des fichiers de configuration, lui, ne change pas.
 
 
 ---

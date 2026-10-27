@@ -13,7 +13,8 @@ d'un PC Windows (pas de câble, pas de routeur) :
 | PC01 | Windows 11 | poste client, TP3 (DHCP) en machines virtuelles, rapports |
 
 Les énoncés sont écrits pour **CentOS 7** : les documents donnent la configuration CentOS
-(référence pour les rapports) **et** son équivalent Ubuntu 24.04 (version exécutée).
+(référence pour les rapports) **et** son équivalent Ubuntu 24.04, qui est le système
+réellement utilisé sur les deux serveurs.
 
 ## Contenu
 
