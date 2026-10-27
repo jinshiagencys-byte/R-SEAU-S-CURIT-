@@ -10,14 +10,16 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 
 ## Par où commencer
 
-1. **`08_QUI_FAIT_QUOI.md`** — le chef d'orchestre : 8 phases, qui fait quoi, qui bloque
-   qui, et la porte de sortie de chaque phase. **Commence par ça.**
-2. **`00_PLAN_ET_RESEAU.md`** — à lire en premier, à faire ensemble (30 min).
+1. **`09_PLAYBOOK_RELAIS.md`** — **le document à suivre pendant le TP** : 61 étapes
+   numérotées, un seul porteur du bâton à la fois, avec le message exact à envoyer pour
+   passer à l'étape suivante. Commence ici, tu n'as pas besoin de lire le reste.
+2. **`08_QUI_FAIT_QUOI.md`** — la vue par phases (parallélisme, durées, portes de sortie).
+3. **`00_PLAN_ET_RESEAU.md`** — à lire en premier, à faire ensemble (30 min).
    Architecture du labo, plan d'adressage, répartition, règles de survie.
-3. **`07_UBUNTU-24.04.md`** — **obligatoire si ta machine n'est pas CentOS 7** : c'est la
+4. **`07_UBUNTU-24.04.md`** — **obligatoire si ta machine n'est pas CentOS 7** : c'est la
    version exécutable (bind9, isc-dhcp-server, apache2, ufw, AppArmor, systemd-resolved) et
    le tableau de correspondance CentOS ↔ Ubuntu pour les rapports.
-4. Puis chaque machine prend son document :
+5. Puis chaque machine prend son document :
 
 | Document | Qui | Contenu |
 |---|---|---|
@@ -30,6 +32,7 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `06_MESSAGES_EQUIPE.md` | — | messages prêts à copier-coller |
 | `07_UBUNTU-24.04.md` | Linux A **et** Linux B | **commandes et fichiers de conf réels pour Ubuntu** (§12 = runbook complet de SRV2) |
 | `08_QUI_FAIT_QUOI.md` | tous | **ordre d'exécution en 8 phases, par machine, avec les portes de sortie** |
+| `09_PLAYBOOK_RELAIS.md` | tous | **61 étapes numérotées, un porteur du bâton à la fois, avec les messages de passage** |
 | `scripts/00-verif-reseau.sh` | A et B | contrôle de la phase 1 : IP, passerelle, Internet, ping croisé, `/etc/hosts` |
 | `scripts/01-verif-dns.sh` | A | contrôle des 26 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
 
