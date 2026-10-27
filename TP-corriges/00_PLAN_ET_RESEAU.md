@@ -125,8 +125,32 @@ Se connecter au Wi-Fi « LAB » via l'interface graphique, puis :
 
 ```bash
 # 1. Repérer le nom exact de la connexion Wi-Fi
-nmcli -t -f NAME,DEVICE connection show --active
+nmcli -f NAME,DEVICE,TYPE connection show --active
+```
 
+**`NOM_DU_WIFI` est un espace réservé, pas un mot-clé.** C'est le **nom du profil
+NetworkManager**, qui n'est pas toujours le SSID : si tu t'es déjà connecté à un réseau du
+même nom, Ubuntu crée une copie `LAB 1`, `LAB 2`… Et les noms peuvent contenir des espaces.
+Exemple de sortie :
+
+```
+NAME   DEVICE  TYPE
+LAB    wlp2s0  wifi        ← ici NOM_DU_WIFI = LAB
+```
+
+Deux façons de ne pas se tromper :
+
+```bash
+# a) récupérer le nom dans une variable (guillemets obligatoires : le nom peut contenir des espaces)
+CON="$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+echo "Profil utilisé : $CON"
+
+# b) ou utiliser l'UUID, qui reste unique même en cas de doublon de nom
+nmcli -f NAME,UUID,TYPE connection show
+#    puis : nmcli connection modify <uuid> ...
+```
+
+```bash
 # 2. Passer en IP fixe (remplacer NOM_DU_WIFI)
 #    Linux A :
 sudo nmcli connection modify "NOM_DU_WIFI" \

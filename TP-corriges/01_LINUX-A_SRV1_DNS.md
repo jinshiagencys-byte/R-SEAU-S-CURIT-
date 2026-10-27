@@ -43,12 +43,12 @@ fois** : nom `srv1.ofppt.local`, et les autres noms deviennent des alias DNS (CN
 # Nom d'hôte
 sudo hostnamectl set-hostname srv1.ofppt.local
 
-# IP fixe (adapter le nom de connexion Wi-Fi)
-nmcli -t -f NAME,DEVICE connection show --active
-sudo nmcli connection modify "NOM_DU_WIFI" \
+# IP fixe — NOM_DU_WIFI = nom du profil NetworkManager (voir doc 00 §5.2)
+CON="$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+sudo nmcli connection modify "$CON" \
      ipv4.method manual ipv4.addresses 192.168.137.10/24 \
      ipv4.gateway 192.168.137.1 ipv4.dns 192.168.137.1 ipv4.dns-search ofppt.local
-sudo nmcli connection up "NOM_DU_WIFI"
+sudo nmcli connection up "$CON"
 
 # /etc/hosts
 sudo tee -a /etc/hosts >/dev/null <<'EOF'

@@ -49,14 +49,19 @@ d'équivalence ci-dessus donne la correspondance commande par commande. »
 doc 00 §5.2 fonctionnent telles quelles. Deux différences :
 
 ```bash
-# Nom du profil = le SSID du hotspot
-nmcli -t -f NAME,DEVICE connection show --active
+# Nom du profil = le SSID du hotspot, mais pas toujours : voir doc 00 §5.2
+# (doublons "LAB 1", espaces dans le nom…)
+nmcli -f NAME,DEVICE,TYPE connection show --active
 
-sudo nmcli connection modify "NOM_DU_WIFI" \
+# version sans copier-coller, guillemets obligatoires (le nom peut contenir des espaces)
+CON="$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+echo "Profil utilisé : $CON"
+
+sudo nmcli connection modify "$CON" \
      ipv4.method manual ipv4.addresses 192.168.137.10/24 \
      ipv4.gateway 192.168.137.1 \
      ipv4.dns "127.0.0.1,192.168.137.1" ipv4.dns-search "ofppt.local"
-sudo nmcli connection up "NOM_DU_WIFI"
+sudo nmcli connection up "$CON"
 
 hostnamectl set-hostname srv1.ofppt.local      # identique
 ```
@@ -607,12 +612,17 @@ explications de chaque étape sont dans les sections indiquées.
 ```bash
 # ---------- 0. Socle ----------
 sudo hostnamectl set-hostname srv2.ofppt.local
-nmcli -t -f NAME,DEVICE connection show --active
-sudo nmcli connection modify "NOM_DU_WIFI" \
+
+# NOM_DU_WIFI = nom du profil NetworkManager (souvent le SSID, parfois "LAB 1").
+# On le récupère au lieu de le taper à la main (voir doc 00 §5.2) :
+CON="$(nmcli -g NAME,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1)"
+echo "Profil utilisé : $CON"
+
+sudo nmcli connection modify "$CON" \
      ipv4.method manual ipv4.addresses 192.168.137.20/24 \
      ipv4.gateway 192.168.137.1 ipv4.dns "192.168.137.10,192.168.137.1" \
      ipv4.dns-search "ofppt.local"
-sudo nmcli connection up "NOM_DU_WIFI"
+sudo nmcli connection up "$CON"
 printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n' | sudo tee -a /etc/hosts
 dig www.ntic.local +short          # doit renvoyer 192.168.137.20 — sinon attends Linux A
 
