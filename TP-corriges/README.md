@@ -34,7 +34,8 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `08_QUI_FAIT_QUOI.md` | tous | **ordre d'exécution en 8 phases, par machine, avec les portes de sortie** |
 | `09_PLAYBOOK_RELAIS.md` | tous | **61 étapes numérotées, un porteur du bâton à la fois, avec les messages de passage** |
 | `scripts/00-verif-reseau.sh` | A et B | contrôle de la phase 1 : IP, passerelle, Internet, ping croisé, `/etc/hosts` |
-| `scripts/01-verif-dns.sh` | A | contrôle des 26 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
+| `scripts/01-verif-dns.sh` | A | contrôle des 29 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
+| `scripts/90-collecte.sh` | tous | rapport complet prêt à coller dans une Issue GitHub (réseau, services, ports, `dig`, journaux) |
 
 ## L'architecture en une image
 

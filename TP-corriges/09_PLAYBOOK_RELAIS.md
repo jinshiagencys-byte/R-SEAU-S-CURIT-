@@ -222,12 +222,12 @@ sudo smbpasswd -a hiba ; sudo smbpasswd -a wahid ; sudo smbpasswd -a hamid
 sudo mkdir -p /decouverte /home/{projet,data,tri,ntic}
 ```
 
-**21. 🅰 Contrôle automatique (26 enregistrements)**
+**21. 🅰 Contrôle automatique (29 enregistrements)**
 ```bash
 git clone https://github.com/jinshiagencys-byte/R-SEAU-S-CURIT-.git ~/tp-reseau 2>/dev/null || (cd ~/tp-reseau && git pull)
 bash ~/tp-reseau/TP-corriges/scripts/01-verif-dns.sh 192.168.137.10
 ```
-Objectif : **`PHASE 2 VALIDÉE — 26 contrôles OK`**.
+Objectif : **`PHASE 2 VALIDÉE — 29 contrôles OK`**.
 
 **22. 🅰 Ouvre le pare-feu DNS**
 ```bash
@@ -258,7 +258,7 @@ getent hosts www.ntic.local          # doit répondre SANS @
 **25. 🅰 envoie**
 > 🟢 **DNS OK**
 > `dig @192.168.137.10 www.ntic.local` → 192.168.137.20, vérifié depuis SRV1, SRV2 et Windows.
-> 26/26 enregistrements validés. 🅱 : tu peux lancer Apache.
+> 29/29 enregistrements validés. 🅱 : tu peux lancer Apache.
 
 🟢 **Fin du relais 2.** Le bâton passe à 🅱.
 

@@ -101,3 +101,51 @@ Version courte à leur envoyer sur WhatsApp/Telegram, et les consignes précises
 | Linux B | A + Windows | captures Apache/FTP/Samba + `/etc/exports` prêt |
 | Windows | A + B | captures des tests clients + `ipconfig /all` du bail DHCP |
 | Linux A | B | captures des 4 montages NFS (`df -hT`) |
+
+---
+
+## Le canal officiel : une Issue GitHub par blocage
+
+Le dépôt est public, donc les Issues sont lisibles par tout le monde — y compris par
+l'assistant qui suit ce TP. C'est le seul canal où vos sorties arrivent **en texte brut**
+(copiable, comparables), contrairement aux captures d'écran.
+
+> ⚠️ **Ne jamais coller de mot de passe, de token ou de clé** dans une Issue : c'est public
+> et indexé. Comptes de TP uniquement.
+
+### Modèle à copier tel quel
+
+```
+Titre : [SRV2] étape 19 — apt install échoue
+
+## Où j'en suis
+- Machine : SRV2 / PC01
+- Étape du playbook : 19
+- Déjà validé : phase 1 (ping croisé OK)
+
+## Ce que j'ai tapé
+    sudo apt install -y apache2 vsftpd samba
+    (coller la commande exacte, une ligne = une commande)
+
+## Ce que ça a répondu
+    (coller la sortie COMPLÈTE, pas une capture d'écran)
+
+## Le rapport automatique
+    bash ~/tp-reseau/TP-corriges/scripts/90-collecte.sh SRV2
+    (coller tout ce que ça affiche)
+```
+
+### Pourquoi le script `90-collecte.sh`
+
+Il sort en un seul bloc tout ce qu'on va de toute façon demander ensuite :
+
+```bash
+bash ~/tp-reseau/TP-corriges/scripts/90-collecte.sh SRV2 > /tmp/rapport.txt
+cat /tmp/rapport.txt        # puis copier-coller dans l'Issue
+```
+
+Nom, IP, route, `resolv.conf`, profil Wi-Fi actif, ping des 4 cibles, état des services,
+ports en écoute, les 6 requêtes `dig` qui comptent, les dernières lignes de journal des
+services en échec et `ufw status`. Avec ça, 9 blocages sur 10 se diagnostiquent sans
+aller-retour.
+

@@ -89,7 +89,7 @@ dig @127.0.0.1 www.ntic.local +short
 # 5. Seulement maintenant : basculer le résolveur système (07 §3.7)
 #    systemd-resolved -> off, resolv.conf -> nameserver 127.0.0.1
 
-# 6. Contrôle automatique des 26 enregistrements
+# 6. Contrôle automatique des 29 enregistrements
 bash scripts/01-verif-dns.sh 192.168.137.10
 ```
 

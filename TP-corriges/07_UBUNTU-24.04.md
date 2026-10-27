@@ -377,7 +377,7 @@ sudo systemctl restart NetworkManager
 
 ### 3.8 Vérification automatique de tout le TP4
 
-Un script contrôle les 26 enregistrements et affiche OK/ECHEC avec la valeur attendue :
+Un script contrôle les 29 enregistrements et affiche OK/ECHEC avec la valeur attendue :
 
 ```bash
 # depuis le dépôt
