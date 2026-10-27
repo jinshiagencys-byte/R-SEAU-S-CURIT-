@@ -54,6 +54,21 @@ contient() {
     fi
 }
 
+# verifie <intitulé> <attendu> <obtenu>   (comparaison de deux chaînes déjà calculées)
+verifie() {
+    local libelle="$1" attendu="$2" obtenu="$3"
+
+    if [ "$obtenu" = "$attendu" ]; then
+        vert "  [OK]    ${libelle} → ${obtenu}"
+        OK=$((OK+1))
+    else
+        rouge "  [ECHEC] ${libelle}"
+        rouge "          attendu : '${attendu}'"
+        rouge "          obtenu  : '${obtenu:-rien}'"
+        KO=$((KO+1))
+    fi
+}
+
 titre "0. Service"
 if systemctl is-active --quiet bind9 2>/dev/null || systemctl is-active --quiet named 2>/dev/null; then
     vert "  [OK]    bind9 est actif"
@@ -100,13 +115,14 @@ check "192.168.137.10 → srv1" "srv1.ofppt.local."  -x 192.168.137.10
 check "192.168.137.20 → srv2" "srv2.ofppt.local."  -x 192.168.137.20
 
 titre "6. Temporisations SOA (TP4-1 §7)"
-SOA="$(dig +short +time=2 @${SRV} ofppt.local SOA 2>/dev/null | tr '\n' ' ')"
+SOA="$(dig +short +time=2 +tries=1 @${SRV} ofppt.local SOA 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')"
+[ -n "$SOA" ] && echo "  SOA : ${SOA}"
 REFRESH="$(printf '%s' "$SOA" | awk '{print $4}')"
 RETRY="$(printf '%s' "$SOA" | awk '{print $5}')"
 EXPIRE="$(printf '%s' "$SOA" | awk '{print $6}')"
-check "refresh (2H)"  "7200"    "${REFRESH:-x}"
-check "retry (20M)"   "1200"    "${RETRY:-x}"
-check "expire (1W)"   "604800"  "${EXPIRE:-x}"
+verifie "refresh (2H)"  "7200"    "${REFRESH:-}"
+verifie "retry (20M)"   "1200"    "${RETRY:-}"
+verifie "expire (1W)"   "604800"  "${EXPIRE:-}"
 
 titre "7. Zones du TP5 (ntic.local / tri.local)"
 check "www.ntic.local" "192.168.137.20" www.ntic.local A
@@ -115,8 +131,9 @@ contient "SRV _ldap._tcp (20 200 389)" "20 200 389 ldap.ntic.local." _ldap._tcp.
 contient "MX de ntic.local" "20 mail.ntic.local." ntic.local MX
 
 titre "8. Enregistrements du TP6"
-check "centos1.ofppt.local" "192.168.137.10" centos1.ofppt.local A
-check "ftp.ofppt.local"     "192.168.137.20" ftp.ofppt.local A
+# centos1 est un CNAME : +short renvoie la cible PUIS l'A résolu, d'où "contient"
+contient "centos1.ofppt.local (CNAME → 192.168.137.10)" "192.168.137.10" centos1.ofppt.local A
+check    "ftp.ofppt.local"                             "192.168.137.20" ftp.ofppt.local A
 
 printf '\n────────────────────────────────\n'
 printf 'Serveur : %s\n' "$SRV"
