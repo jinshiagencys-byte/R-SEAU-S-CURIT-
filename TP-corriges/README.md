@@ -30,6 +30,8 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `06_MESSAGES_EQUIPE.md` | — | messages prêts à copier-coller |
 | `07_UBUNTU-24.04.md` | Linux A **et** Linux B | **commandes et fichiers de conf réels pour Ubuntu** (§12 = runbook complet de SRV2) |
 | `08_QUI_FAIT_QUOI.md` | tous | **ordre d'exécution en 8 phases, par machine, avec les portes de sortie** |
+| `scripts/00-verif-reseau.sh` | A et B | contrôle de la phase 1 : IP, passerelle, Internet, ping croisé, `/etc/hosts` |
+| `scripts/01-verif-dns.sh` | A | contrôle des 26 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
 
 ## L'architecture en une image
 

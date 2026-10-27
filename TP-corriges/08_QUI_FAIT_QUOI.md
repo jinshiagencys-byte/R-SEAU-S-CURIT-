@@ -51,10 +51,9 @@ genre de labo. Le PC Windows s'endort, les Linux perdent la passerelle, `dig` et
 **Test de sortie obligatoire** (à faire à deux, pas chacun dans son coin) :
 
 ```bash
-# depuis A
-ping -c2 192.168.137.20
-# depuis B
-ping -c2 192.168.137.10
+# sur chaque machine : vérifie IP, passerelle, Internet, ping croisé, /etc/hosts
+bash scripts/00-verif-reseau.sh 192.168.137.10     # sur SRV1
+bash scripts/00-verif-reseau.sh 192.168.137.20     # sur SRV2
 ```
 
 Si ça échoue alors que chacun ping la passerelle : isolation client du hotspot. Couper
@@ -70,19 +69,28 @@ puis le remettre.
 ### Linux A — c'est toi, et c'est bloquant
 
 ```bash
-# 1. Neutraliser systemd-resolved (LE piège Ubuntu)
-#    -> 07 §2
-# 2. Installer et configurer bind9
+# 1. Installer D'ABORD (apt a besoin d'Internet → ne coupe pas le résolveur avant)
 sudo apt install -y bind9 bind9utils bind9-dnsutils
+
+# 2. Configurer
 #    -> 07 §3.2 (named.conf.options), §3.3 (named.conf.local), §3.4 (zones)
+#       piège : les zones vont dans /etc/bind/zones/ et appartiennent à root:bind
+
+# 3. Contrôler et démarrer
 sudo named-checkconf
 sudo named-checkzone ofppt.local /etc/bind/zones/ofppt.local.dir
 sudo systemctl enable --now bind9
-# 3. Tests -> 07 §3.6
+sudo ss -lntup | grep :53
+
+# 4. Tester AVANT de toucher au résolveur (avec @127.0.0.1 explicite)
 dig @127.0.0.1 srv1.ofppt.local +short
 dig @127.0.0.1 www.ntic.local +short
-dig @127.0.0.1 www.tri.local +short
-dig @127.0.0.1 ftp.ofppt.local +short
+
+# 5. Seulement maintenant : basculer le résolveur système (07 §3.7)
+#    systemd-resolved -> off, resolv.conf -> nameserver 127.0.0.1
+
+# 6. Contrôle automatique des 26 enregistrements
+bash scripts/01-verif-dns.sh 192.168.137.10
 ```
 
 ✅ **Porte de sortie (à annoncer au groupe dès que c'est bon)** :

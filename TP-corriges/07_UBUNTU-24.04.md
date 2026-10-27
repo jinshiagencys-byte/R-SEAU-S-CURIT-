@@ -76,6 +76,16 @@ Vérification : `ip -4 a`, `ip r`, `ping -c2 192.168.137.1`.
 
 ## 2. Le piège n°1 d'Ubuntu : systemd-resolved
 
+> ## ⛔ NE FAIS PAS CETTE ÉTAPE MAINTENANT
+>
+> Elle se fait **en dernier**, à la fin de §3.7, **après** que bind9 soit installé, configuré
+> et démarré. Raison : tant que `systemd-resolved` tourne, tu gardes Internet et donc `apt`.
+> Si tu le désactives avant d'avoir installé bind9, tu perds la résolution, `apt install`
+> échoue, et tu es bloqué sans pouvoir réparer facilement.
+>
+> L'ordre correct : **§3.1 installer → §3.2-3.4 configurer → §3.5 démarrer → §3.6 tester
+> (avec `@127.0.0.1`) → §3.7 basculer le résolveur** (c'est le contenu ci-dessous).
+
 Sur Ubuntu, le port 53 est déjà occupé par `systemd-resolved` via l'adresse `127.0.0.53`.
 Bind démarre quand même, mais **toutes tes requêtes partent vers resolved, pas vers ton
 serveur**. Résultat : `dig` interroge ton bind, mais le navigateur et `ping` non — et tu
@@ -310,8 +320,71 @@ dig @127.0.0.1 www.ntic.local +short
 dig @127.0.0.1 _ldap._tcp.ntic.local SRV +short
 ```
 
-**Toujours mettre `@127.0.0.1` explicite** tant que tu n'as pas fait le §2 de ce document.
+**Toujours mettre `@127.0.0.1` explicite** tant que tu n'as pas fait le §3.7 ci-dessous.
 Sans ça tu interroges `systemd-resolved` et tu crois que Bind est cassé.
+
+### 3.7 Bascule du résolveur système (à faire en DERNIER)
+
+Maintenant que Bind répond, tu peux couper `systemd-resolved` et faire de ton serveur le
+résolveur de la machine. C'est le contenu du §2 : applique-le **ici**.
+
+```bash
+# 1. Contrôle avant de toucher à quoi que ce soit
+dig @127.0.0.1 srv1.ofppt.local +short      # doit répondre 192.168.137.10
+
+# 2. Couper le stub de systemd-resolved
+sudo systemctl disable --now systemd-resolved
+sudo systemctl mask systemd-resolved
+
+# 3. Empêcher NetworkManager de réécrire /etc/resolv.conf
+sudo mkdir -p /etc/NetworkManager/conf.d
+sudo tee /etc/NetworkManager/conf.d/99-no-dns.conf >/dev/null <<'EOF'
+[main]
+dns=none
+EOF
+sudo systemctl restart NetworkManager
+sudo nmcli connection up "$CON"
+
+# 4. Pointer le résolveur sur NOTRE bind
+sudo rm -f /etc/resolv.conf
+sudo tee /etc/resolv.conf >/dev/null <<'EOF'
+nameserver 127.0.0.1
+search ofppt.local
+EOF
+
+# 5. Vérification : le nom doit se résoudre SANS @
+getent hosts www.ntic.local
+ping -c2 www.tri.local
+dig ftp.ofppt.local +short
+```
+
+Si `getent hosts` ne renvoie rien alors que `dig @127.0.0.1` fonctionne : c'est
+`/etc/nsswitch.conf` ou le `resolv.conf` qui n'a pas été remplacé (le lien symbolique est
+encore là → refaire l'étape 4).
+
+**Retour arrière** (fin de TP) :
+
+```bash
+sudo systemctl unmask systemd-resolved && sudo systemctl enable --now systemd-resolved
+sudo rm -f /etc/resolv.conf && sudo ln -s /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+sudo rm /etc/NetworkManager/conf.d/99-no-dns.conf
+sudo systemctl restart NetworkManager
+```
+
+### 3.8 Vérification automatique de tout le TP4
+
+Un script contrôle les 26 enregistrements et affiche OK/ECHEC avec la valeur attendue :
+
+```bash
+# depuis le dépôt
+bash scripts/01-verif-dns.sh              # interroge 127.0.0.1
+bash scripts/01-verif-dns.sh 192.168.137.10
+```
+
+Il vérifie : A, CNAME, MX, AAAA, NS, PTR, les 3 temporisations SOA, les zones `ntic`/`tri`
+et le SRV LDAP. Code retour 0 = porte de sortie de la phase 2 atteinte. Les sorties de ce
+script sont directement exploitables dans `TP4.doc`.
+
 
 ---
 
