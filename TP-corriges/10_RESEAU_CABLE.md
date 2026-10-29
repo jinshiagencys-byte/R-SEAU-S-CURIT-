@@ -445,3 +445,27 @@ sont réellement indisponibles le jour de l'évaluation.
 | 2 Windows | ❌ | ✅ en VM | ✅ natif | 1 câble |
 
 **Ordre de préférence : 2 Linux + 1 Windows › 2 Linux + VM Windows › 2 Windows.**
+
+---
+
+## 8. À quoi sert le poste Windows (et ce qu'on perd sans lui)
+
+Le PC Windows **n'est pas un serveur** dans ce module : aucun service du TP ne tourne chez
+lui. Il sert à deux choses, toutes deux notées :
+
+| Rôle | Où c'est exigé | Perdu si on le retire |
+|---|---|---|
+| **Client de test** (captures d'écran) | TP3 §9 (`ipconfig /all`), TP4 (`nslookup`), TP5 (navigateur + certificat), TP6 (Explorateur/FileZilla), TP9 (`\\srv2\partage`) | les preuves « côté client » des rapports |
+| **Hôte des VM du TP3** (VirtualBox) | TP3-1 et TP3-2 | rien d'irremplaçable : VirtualBox existe aussi sous Linux |
+
+Donc : **utile, oui ; indispensable, non.** Il porte environ deux tiers des preuves clients,
+mais aucun service. S'il disparaît :
+
+1. Les tests clients se font depuis SRV1 (`curl`, `dig`, `smbclient`, `ftp`, `showmount`) —
+   c'est déjà prévu dans les documents.
+2. Les VM DHCP passent sur un des Linux (même réseau host-only).
+3. On l'écrit noir sur blanc dans le rapport : « poste client Windows indisponible ;
+   tests clients réalisés depuis SRV1 ». C'est un écart assumé, pas une faute.
+
+**La seule vraie perte** : les captures Windows natives (Explorateur réseau, certificat dans
+Edge). Remplacement propre = une **VM Windows en accès par pont** sur le câble.
