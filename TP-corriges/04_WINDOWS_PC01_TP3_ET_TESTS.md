@@ -18,10 +18,11 @@ C'est aussi l'occasion de montrer deux clients (Linux et Windows) sur le même s
 
 **Matériel nécessaire :** ~3 Go de RAM libre et ~15 Go de disque sur le PC Windows.
 
-> 🔌 **Le PC Windows doit d'abord être mis sur le réseau du labo** : pont logiciel entre ses
-> deux cartes Ethernet, adresse `192.168.137.1`. Procédure détaillée aux **étapes 2 à 4 de
-> `10_RESEAU_CABLE.md`**. Le TP3 ci-dessous ne dépend pas de ce réseau (VM host-only), mais
-> les tests clients des TP4/5/6/8/9, si.
+> 🔌 **Ce PC n'a aucune prise RJ45** : il ne peut pas être branché au segment câblé du labo
+> (deux adaptateurs USB-Ethernet seraient nécessaires, cf. Annexe A de `10_RESEAU_CABLE.md`).
+> Conséquence : les VM du TP3 ci-dessous sont **autonomes** (réseau host-only), mais les
+> **tests clients des TP4/5/6/8/9 ne peuvent pas être faits depuis Windows** — ils se font
+> depuis SRV1 (`curl`, `dig`, `smbclient`, `ftp`, `showmount`), avec l'écart noté au rapport.
 
 ```
    Windows (hôte)                Réseau host-only "vboxnet0" 172.19.20.0/24

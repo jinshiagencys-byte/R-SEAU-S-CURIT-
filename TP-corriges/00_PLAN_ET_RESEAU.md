@@ -226,9 +226,10 @@ machine se met en veille. Si le labo dispose de câbles Ethernet, c'est préfér
 machines sans switch ou sans machine à deux ports — le document expose les trois câblages
 possibles.
 
-**Montage retenu** : PC Windows à deux prises RJ45, pas de switch → **schéma B = pont
-logiciel Windows** (étapes 2 à 4 du doc 10). Windows relie les deux Linux en interne, porte
-`192.168.137.1`, et le plan d'adressage ne change pas.
+**Montage retenu** : les deux Linux sont reliés par **un câble direct** (le PC Windows n'a
+aucune prise RJ45, et un switch ne résoudrait rien). Le PC Windows reste hors du segment : il
+fait son TP3 en VM host-only, et les tests clients se font depuis SRV1. Le pont Windows
+demanderait deux adaptateurs USB-Ethernet (Annexe A du doc 10).
 
 Ce qui change, et **seulement** ça :
 
@@ -236,8 +237,8 @@ Ce qui change, et **seulement** ça :
 |---|---|---|
 | Interface | `wlp2s0` | `enp1s0` |
 | Profil NetworkManager | profil Wi-Fi existant | profil dédié `tp-cable` |
-| Passerelle | `192.168.137.1` | idem en B2 (pont + partage), **aucune** en B1 |
-| Internet | oui | oui en B2, **non** en B1 → `scripts/97-paquets-hors-ligne.sh` |
+| Passerelle | `192.168.137.1` | **aucune** (`ipv4.never-default yes`) |
+| Internet | oui | **non** → `scripts/97-paquets-hors-ligne.sh` |
 
 Les zones DNS, les vhosts, Samba, NFS et le TP3 **ne changent pas**.
 

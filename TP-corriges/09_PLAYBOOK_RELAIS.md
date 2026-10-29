@@ -33,20 +33,21 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 
 > 🔌 **Si le hotspot devient le problème** (déconnexions, isolation client, veille du PC
 > Windows) : basculer sur le **câblé**. Procédure complète dans `10_RESEAU_CABLE.md`.
-> **Matériel retenu** : 2 câbles, pas de switch, PC Windows à 2 prises RJ45 → **pont Windows**,
-> étapes 1 à 16 du doc 10 (mode opératoire, une étape à la fois).
+> **Matériel réel** : 2 câbles, pas de switch, PC Windows **sans prise RJ45** → **câble direct
+> 🅰 ↔ 🅱**, 14 étapes du doc 10 (mode opératoire, une étape à la fois). 🆆 reste hors du
+> segment : son TP3 tourne en VM host-only, ses tests clients passent par 🅰.
 >
 > Ce qui change dans ce playbook : étapes **5 à 10** (interface `enp1s0` au lieu de `wlp2s0`)
 > et le mode du script de contrôle. Le reste est identique.
 >
 > ```bash
-> bash 00-verif-reseau.sh .10        # sur 🅰  (B2 : passerelle .1)
-> bash 00-verif-reseau.sh .10 --isole # sur 🅰  (B1 : pas d'Internet)
+> bash 00-verif-reseau.sh .10 --isole     # sur 🅰
+> bash 00-verif-reseau.sh .20 --isole     # sur 🅱
 > ```
 >
-> Sortie attendue : `PHASE 1 VALIDÉE — N contrôles OK (mode hotspot|double|isole)`.
-> ⚠️ En schéma C (secours, sans pont), 🆆 quitte le réseau du labo : son TP3 (VM host-only)
-> reste faisable, mais les tests clients Apache/FTP/Samba se font depuis 🅰.
+> Sortie attendue : `PHASE 1 VALIDÉE — N contrôles OK (mode isole)`.
+> ⚠️ 🆆 est hors réseau : les tests clients Apache/FTP/Samba/NFS se font depuis 🅰
+> (`curl`, `dig`, `smbclient`, `ftp`, `showmount`).
 
 ### Journal des retours
 
