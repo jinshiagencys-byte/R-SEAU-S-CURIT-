@@ -252,14 +252,49 @@ seulement que le **DNS** pointe bien sur SRV1 après le TP4 :
    **Retour à la vie normale** (fin de TP, avant de rendre le PC à son propriétaire) :
 
    ```bash
+   # tout est automatisé, y compris la remise en DHCP des profils Wi-Fi
+   sudo bash TP-corriges/scripts/98-retour-a-la-normale.sh
+   ```
+
+   Le script récupère tout seul le nom d'origine (ligne `127.0.1.1` de `/etc/hosts`).
+   **Il ne supprime pas `/etc/bind/zones`** : la session suivante repart de là.
+   Fait à la main, l'équivalent serait :
+
+   ```bash
+   sudo systemctl disable --now bind9
+   sudo systemctl unmask systemd-resolved && sudo systemctl enable --now systemd-resolved
+   rm -f /etc/resolv.conf && sudo ln -s /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+   sudo rm -f /etc/NetworkManager/conf.d/99-no-dns.conf
    sudo nmcli connection modify "NOM_DU_WIFI" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
-   sudo nmcli connection up "NOM_DU_WIFI"
-   sudo hostnamectl set-hostname fedora   # ou le nom d'origine
+   sudo hostnamectl set-hostname NOM_D_ORIGINE
    ```
 
 5. **Nom de la machine** : si votre Linux n'est pas CentOS (Ubuntu, Debian, Fedora, Arch…),
-   prévenez-moi avant d'exécuter : les paquets, les chemins de configuration et `nmcli`
-   changent. Les documents sont écrits pour **CentOS 7**.
+   les paquets, les chemins de configuration et `nmcli` changent. Les documents sont écrits
+   pour **CentOS 7**, et `07_UBUNTU-24.04.md` donne la version exécutable sur Ubuntu.
+
+6. **Travailler en salle SANS Internet** (Wi-Fi de l'école filtré, port Ethernet en 802.1X,
+   hotspot instable…). Le TP ne demande Internet que pour **une seule chose** : `apt install`.
+   Une fois les paquets posés, DNS, Apache, FTP, Samba, NFS et DHCP fonctionnent hors ligne.
+
+   ```bash
+   # 1. à la maison, sur une Ubuntu 24.04 connectée
+   bash TP-corriges/scripts/97-paquets-hors-ligne.sh
+   #    → dossier ./paquets-tp/ avec tous les .deb  (copier sur clé USB)
+
+   # 2. en salle, sans réseau
+   sudo apt install ./paquets-tp/*.deb
+   ```
+
+   ⚠️ Le réseau du labo doit alors être **indépendant** de l'école : le partage de connexion
+   Android/iPhone, ou un simple switch avec des IP fixes. Ce qui n'est **pas** indispensable :
+   la passerelle par défaut. Les services (DNS, web, FTP, SMB, NFS) ne sortent pas sur Internet.
+   Seul `apt` en a besoin — d'où l'étape 1 ci-dessus.
+
+   Si le hotspot du PC Windows n'est pas disponible, remplacez `192.168.137.0/24` par le sous-réseau
+   du téléphone (souvent `192.168.43.0/24` pour Android, `172.20.10.0/24` pour iPhone) dans
+   **tous** les fichiers de conf et de zone — c'est une simple substitution, mais elle doit être
+   faite partout.
 
 ---
 

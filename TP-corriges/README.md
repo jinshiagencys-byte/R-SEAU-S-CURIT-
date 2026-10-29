@@ -36,6 +36,8 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `scripts/00-verif-reseau.sh` | A et B | contrôle de la phase 1 : IP, passerelle, Internet, ping croisé, `/etc/hosts` |
 | `scripts/01-verif-dns.sh` | A | contrôle des 29 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
 | `scripts/90-collecte.sh` | tous | rapport complet prêt à coller dans une Issue GitHub (réseau, services, ports, `dig`, journaux) |
+| `scripts/97-paquets-hors-ligne.sh` | A (à la maison) | télécharge tous les `.deb` du TP pour installer **sans Internet** en salle |
+| `scripts/98-retour-a-la-normale.sh` | A et B | remet le PC en état normal : DHCP, `systemd-resolved`, hostname, `/etc/hosts` |
 
 ## L'architecture en une image
 
