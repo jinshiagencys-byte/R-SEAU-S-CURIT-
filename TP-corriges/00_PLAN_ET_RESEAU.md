@@ -224,7 +224,11 @@ machine se met en veille. Si le labo dispose de câbles Ethernet, c'est préfér
 
 **À lire avant de brancher : `10_RESEAU_CABLE.md`.** Deux câbles ne suffisent pas pour trois
 machines sans switch ou sans machine à deux ports — le document expose les trois câblages
-possibles et la configuration `nmcli` de chacun.
+possibles.
+
+**Montage retenu** : PC Windows à deux prises RJ45, pas de switch → **schéma B = pont
+logiciel Windows** (§3 du doc 10). Windows relie les deux Linux en interne, porte
+`192.168.137.1`, et le plan d'adressage ne change pas.
 
 Ce qui change, et **seulement** ça :
 
@@ -232,13 +236,13 @@ Ce qui change, et **seulement** ça :
 |---|---|---|
 | Interface | `wlp2s0` | `enp1s0` |
 | Profil NetworkManager | profil Wi-Fi existant | profil dédié `tp-cable` |
-| Passerelle | `192.168.137.1` | idem (schéma A/B) ou **aucune** (schéma C) |
-| Internet | oui | oui en schéma A/B, **non** en schéma C → `scripts/97-paquets-hors-ligne.sh` |
+| Passerelle | `192.168.137.1` | idem en B2 (pont + partage), **aucune** en B1 |
+| Internet | oui | oui en B2, **non** en B1 → `scripts/97-paquets-hors-ligne.sh` |
 
 Les zones DNS, les vhosts, Samba, NFS et le TP3 **ne changent pas**.
 
-Le script `scripts/00-verif-reseau.sh` détecte tout seul l'absence de passerelle et passe en
-mode `isole` : il n'exige alors ni `default via`, ni Internet.
+Le script `scripts/00-verif-reseau.sh` détecte tout seul le montage (`hotspot`, `double`,
+`isole`) : il n'exige une passerelle `.1` que lorsque celle-ci existe réellement.
 
 ---
 
