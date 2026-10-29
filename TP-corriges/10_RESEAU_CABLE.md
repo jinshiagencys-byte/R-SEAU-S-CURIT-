@@ -105,6 +105,11 @@ sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
 
 > `never-default yes` : aucune passerelle → le câble porte le labo et ne capte pas Internet.
 > `autoconnect no` : le profil ne se lève pas au démarrage, seulement à la main.
+>
+> ⚠️ **Copier-coller** : pas d'espace après les `\` de fin de ligne. Un `\ ` (barre oblique
+> inversée + espace) termine la commande prématurément et les options suivantes sont
+> silencieusement perdues. Vérifier ensuite :
+> `nmcli -f ipv4.never-default,ipv4.dns,connection.autoconnect connection show tp-cable`
 
 **SI ÇA RATE** — « failed to add » : l'interface n'existe pas sous ce nom → reprends avec le
 nom trouvé à l'étape 1.
@@ -191,6 +196,13 @@ sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
 
 **TU DOIS VOIR** — `ajoutée avec succès`, adresse `.20` (trois différences avec 🅰 : `.20`, le
 DNS `.10`, et rien d'autre).
+
+**SI ÇA RATE**
+
+| Symptôme | Cause | Action |
+|---|---|---|
+| `connexion inconnue : « uuid… uuid… »` | `--active` manquant | reprendre la commande de l'étape 6 |
+| `default via 192.168.137.1` dans `ip r` | `never-default` perdu au collage | `sudo nmcli connection modify tp-cable ipv4.never-default yes` |
 
 > Coche : `[ ] étape 7 — profil tp-cable créé sur 🅱`
 
