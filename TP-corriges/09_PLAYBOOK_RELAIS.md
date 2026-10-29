@@ -31,6 +31,20 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 > (le hotspot Windows filtre l'ICMP). Le test valable est **TCP** :
 > `curl -sI --max-time 8 https://deb.debian.org` → `HTTP/2 200`.
 
+> 🔌 **Si le hotspot devient le problème** (déconnexions, isolation client, veille du PC
+> Windows) : basculer sur le **câblé**. Procédure complète dans `10_RESEAU_CABLE.md`.
+> Le playbook ne change pas de structure, seules les étapes 5 à 10 changent d'interface,
+> et le script de contrôle accepte un mode sans passerelle :
+>
+> ```bash
+> bash 00-verif-reseau.sh .10 --isole     # sur 🅰
+> bash 00-verif-reseau.sh .20 --isole     # sur 🅱
+> ```
+>
+> Sortie attendue en mode isolé : `PHASE 1 VALIDÉE — N contrôles OK (mode isole)`.
+> ⚠️ En câblé direct **sans switch**, 🆆 quitte le réseau du labo : son TP3 (VM host-only)
+> reste faisable, mais les tests clients Apache/FTP/Samba se font depuis 🅰.
+
 ### Journal des retours
 
 | Quand | Qui | Quoi | Verdict |

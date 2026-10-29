@@ -216,6 +216,30 @@ seulement que le **DNS** pointe bien sur SRV1 après le TP4 :
 # → carte "Point d'accès mobile" → IPv4 → Propriétés → DNS préféré : 192.168.137.10
 ```
 
+### 5.4 Variante CÂBLÉE (Ethernet) — remplacer le hotspot
+
+Le partage de connexion Wi-Fi est la partie **la plus fragile** du montage : il dépend de la
+carte Wi-Fi du PC Windows, du profil « Public », de l'isolation client, et il coupe quand la
+machine se met en veille. Si le labo dispose de câbles Ethernet, c'est préférable.
+
+**À lire avant de brancher : `10_RESEAU_CABLE.md`.** Deux câbles ne suffisent pas pour trois
+machines sans switch ou sans machine à deux ports — le document expose les trois câblages
+possibles et la configuration `nmcli` de chacun.
+
+Ce qui change, et **seulement** ça :
+
+| Élément | Hotspot (5.1–5.3) | Câblé (doc 10) |
+|---|---|---|
+| Interface | `wlp2s0` | `enp1s0` |
+| Profil NetworkManager | profil Wi-Fi existant | profil dédié `tp-cable` |
+| Passerelle | `192.168.137.1` | idem (schéma A/B) ou **aucune** (schéma C) |
+| Internet | oui | oui en schéma A/B, **non** en schéma C → `scripts/97-paquets-hors-ligne.sh` |
+
+Les zones DNS, les vhosts, Samba, NFS et le TP3 **ne changent pas**.
+
+Le script `scripts/00-verif-reseau.sh` détecte tout seul l'absence de passerelle et passe en
+mode `isole` : il n'exige alors ni `default via`, ni Internet.
+
 ---
 
 ## 6. Règles de survie (important, ce sont vos PC personnels)
