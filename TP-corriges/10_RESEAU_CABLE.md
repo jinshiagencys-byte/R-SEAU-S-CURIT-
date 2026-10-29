@@ -395,3 +395,53 @@ Trois phrases, et elles montrent que vous avez compris le montage :
 
 C'est exactement le genre de justification qui fait la différence entre « on a suivi la
 feuille » et « on a compris ce qu'on a monté ».
+
+---
+
+## 7. Variante « deux machines seulement »
+
+Question fréquente : et si on n'a que **deux** PC ? Réponse courte : **oui, et c'est même
+plus simple** — un seul câble, aucun pont, aucun switch, aucun partage de connexion.
+
+```
+   Machine 1 ═══════════ câble ═══════════  Machine 2
+   192.168.137.10                          192.168.137.20
+   (SRV1 : DNS + DHCP en VM)               (SRV2 : Apache + FTP + Samba + NFS)
+```
+
+### 7.1 Deux Linux — ✅ tout le TP est faisable
+
+C'est la meilleure configuration à deux machines : **les six TP sont réalisables**, puisque
+tous les services demandés sont des services Linux (Bind, `isc-dhcp-server`, Apache, vsftpd,
+Samba, NFS).
+
+- Mise en réseau : §3.3 et §3.4 de ce document, avec `ipv4.never-default yes` (pas de `.1`).
+  Le second câble reste en secours.
+- Le `ping` **fonctionne** ici (aucun pare-feu Windows sur le chemin) : plus de faux échecs.
+- Il manque seulement le **client Windows** : on le remplace par une **VM Windows dans
+  VirtualBox**, carte réseau en **mode « Accès par pont » sur `enp1s0`**, IP `192.168.137.1`
+  ou DHCP. Les captures d'écran demandées par l'énoncé restent donc produites.
+
+Ce qui change dans les rapports : le PC01 physique devient une VM ; le TP3 (DHCP) se fait
+dans une **autre** VM host-only, exactement comme prévu au doc 04.
+
+### 7.2 Deux Windows — ⚠️ techniquement oui, pédagogiquement non
+
+Le réseau fonctionne (deux IP fixes, partages SMB natifs), mais le module est **«
+administration d'un réseau sous Linux »** : les rapports doivent montrer `named.conf`,
+`apache2.conf`, `smb.conf`, `/etc/exports`, `ufw`, AppArmor. Windows ne fournit ni Bind, ni
+vsftpd, ni exports NFS (le rôle serveur NFS n'existe pas sur un Windows client).
+
+Ce que ça permet quand même : ping, partages SMB, client FTP, et le **TP3 (DHCP) en VM** —
+c'est-à-dire les TP « client », pas les TP « serveur ». À éviter, sauf si les deux Linux
+sont réellement indisponibles le jour de l'évaluation.
+
+### 7.3 Récapitulatif
+
+| Configuration | TP serveurs (4,5,6,8,9) | TP3 DHCP | Client Windows | Câblage |
+|---|---|---|---|---|
+| 2 Linux + 1 Windows (**schéma B**) | ✅ | ✅ | ✅ natif | 2 câbles + pont |
+| **2 Linux** + VM Windows en pont | ✅ | ✅ | ✅ en VM | **1 câble** |
+| 2 Windows | ❌ | ✅ en VM | ✅ natif | 1 câble |
+
+**Ordre de préférence : 2 Linux + 1 Windows › 2 Linux + VM Windows › 2 Windows.**

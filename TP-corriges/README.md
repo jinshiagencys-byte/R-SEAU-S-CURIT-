@@ -55,9 +55,10 @@ Le seul TP qui sort du hotspot : **TP3 (DHCP)**, fait dans deux VM VirtualBox su
 host-only isolé — explication dans le document 04.
 
 > **Si le Wi-Fi n'est pas fiable**, `10_RESEAU_CABLE.md` donne la version câblée du même
-> labo : switch 5 ports (recommandé), PC Windows à deux cartes en pont, ou réseau isolé
-> A ↔ B avec deux câbles seulement. Le plan d'adressage et toutes les configurations de
-> service restent identiques — seule l'interface change.
+> labo : switch 5 ports, PC Windows à deux cartes en pont **← montage retenu**, ou réseau
+> isolé avec deux câbles. Le §7 traite aussi le cas « deux machines seulement ». Le plan
+> d'adressage et toutes les configurations de service restent identiques — seule l'interface
+> change.
 
 ## Règle d'or
 
