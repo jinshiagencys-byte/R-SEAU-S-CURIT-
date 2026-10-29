@@ -1,201 +1,181 @@
-# 10 — Réseau CÂBLÉ : remplacer le hotspot Wi-Fi
+# 10 — LABO CÂBLÉ : mode opératoire, étape par étape
 
-> Ce document **remplace le §5.2 du doc 00** quand le labo est câblé.
-> Tout le reste (zones DNS, vhosts, Samba, NFS, TP3) ne change pas — sauf ce qui est
-> listé aux §3.2 et §4.2.
+> **À suivre dans l'ordre, du haut en bas.** Une étape à la fois, on vérifie, on coche.
+> Trois acteurs : 🆆 = PC Windows · 🅰 = Linux A (SRV1) · 🅱 = Linux B (SRV2).
 >
-> **Matériel retenu pour ce labo** : 2 câbles Ethernet, pas de switch, PC Windows avec
-> **2 prises RJ45** → **schéma B (pont Windows)**, décrit au §3.
-> Le §4 (réseau isolé A ↔ B) reste en secours si le pont refuse de fonctionner.
-
----
-
-## 1. La contrainte à comprendre avant de brancher
-
-Un câble Ethernet relie **exactement deux prises**. Ce n'est pas un bus : il n'y a pas de
-« réseau qui circule dans le câble ».
+> Chaque étape a trois blocs : **TU FAIS** → **TU DOIS VOIR** → **SI ÇA RATE**.
+> Si « TU DOIS VOIR » n'est pas obtenu, **ne passe pas à l'étape suivante** : applique
+> « SI ÇA RATE ». C'est la seule règle.
+>
+> Durée totale : **35 à 45 min** (dont 10 min côté Windows).
+> Matériel : 2 câbles Ethernet, PC Windows à **2 prises RJ45**, 1 prise RJ45 par Linux.
+> Le plan d'adressage ne change pas : `192.168.137.0/24`, 🅰 `.10`, 🅱 `.20`, 🆆 `.1`.
 
 ```
-   2 câbles  +  3 machines  =  il manque quelque chose
-```
-
-Trois machines sur un même réseau câblé, ça demande **une** de ces deux choses :
-
-| Solution | Coût | Résultat |
-|---|---|---|
-| Un **switch** 5 ports | ~100–150 DH | les 3 machines sur le même segment, rien à configurer |
-| **une machine à 2 ports** (ici : le PC Windows) | gratuit si la machine les a | cette machine devient le **nœud central** (pont logiciel) |
-
-**Ce que tu as :** PC Windows avec 2 prises RJ45, aucun switch → la deuxième ligne du tableau.
-Le PC Windows ne sert plus de point d'accès Wi-Fi, il sert de **switch logiciel** (un pont).
-
-```
-        AVANT (hotspot)                     APRÈS (câblé, pont)
-   ┌──────────────────────┐            ┌──────────────────────┐
-   │  PC01  Wi-Fi ─ AP ─┐ │            │  PC01                │
-   │        192.168.137.1│ │            │  câble 1 → Linux A   │
-   └─────────┬─────┬────┘ │            │  câble 2 → Linux B   │
-             │     │      │            └──────────────────────┘
-        Linux A  Linux B
+   🆆 PC Windows  192.168.137.1
+   ├── prise 1 ──câble──► 🅰 Linux A  192.168.137.10
+   └── prise 2 ──câble──► 🅱 Linux B  192.168.137.20
+        (les deux prises réunies en PONT réseau)
 ```
 
 ---
 
-## 2. Les trois câblages possibles
+# PHASE 0 — Avant de brancher (2 min)
 
-### Schéma A — switch 5 ports (le plus simple, si un jour tu en as un)
+## Étape 1 — 🆆 Compter les prises
 
-```
-        ┌──────────────┐
-        │  switch 5p   │
-        └──┬───┬───┬───┘
-           │   │   │
-   ┌───────┘   │   └────────┐
-   │           │            │
- PC Windows  Linux A      Linux B
- 192.168.137.1   .10      .20
-   │
-   └── Wi-Fi école / téléphone (Internet)
-```
-
-Rien à configurer côté Windows (à part l'IP .1 et, si besoin, le partage de connexion).
-**Tous les documents existants s'appliquent sans modification.**
-
-### Schéma B — PC Windows à 2 ports : pont logiciel ← **ton montage**
-
-```
-   PC Windows
-   ├── carte Ethernet 1 ──câble──► Linux A  192.168.137.10
-   ├── carte Ethernet 2 ──câble──► Linux B  192.168.137.20
-   └── (les deux cartes réunies en PONT, IP 192.168.137.1 sur le pont)
-```
-
-Windows « relie » les deux cartes en interne : ce que Linux A envoie à Linux B passe par le
-pont. Du point de vue des Linux, c'est **exactement comme s'ils étaient sur le même switch**.
-Le plan d'adressage ne change pas.
-
-Deux variantes, selon qu'il y a Internet ou non :
-
-| Variante | Pont | Internet | `apt` |
-|---|---|---|---|
-| **B1 — sans Internet** | IP `192.168.137.1/24` posée à la main | non | clé USB (`scripts/97-paquets-hors-ligne.sh`) |
-| **B2 — avec Internet** | partage de connexion Windows (ICS) vers le pont | oui | direct |
-
-> Le partage de connexion de Windows utilise **par défaut** le sous-réseau
-> `192.168.137.0/24` avec la passerelle `192.168.137.1` — c'est exactement notre plan.
-> Aucun conflit d'adressage, aucun document à réécrire.
-
-> ⚠️ Limite connue : un pont logiciel Windows peut décrocher quand une carte passe en veille.
-> Désactiver la veille des cartes Ethernet : Gestionnaire de périphériques → carte →
-> Propriétés → Gestion de l'alimentation → décocher « Autoriser l'ordinateur à éteindre… ».
-
-### Schéma C — réseau isolé A ↔ B, PC Windows hors du labo
-
-Un seul câble utilisé, le PC Windows ne participe plus au réseau. C'est le plan de secours
-du §4 : utile si le pont refuse de fonctionner, mais on perd les tests clients depuis Windows.
-
----
-
-## 3. Configuration du schéma B (ton cas)
-
-### 3.1 Côté Windows — créer le pont (10 minutes)
-
-**a. Brancher d'abord les câbles.** Un câble entre le PC Windows et **Linux A**, l'autre entre
-le PC Windows et **Linux B**. N'importe quelle prise RJ45 de chaque côté : les cartes récentes
-gèrent le croisement automatiquement (auto-MDIX), les deux câbles peuvent être droits.
-
-**b. Vérifier que les deux cartes voient le lien** avant de toucher au pont :
+**TU FAIS** — PowerShell **en administrateur** :
 
 ```powershell
-# PowerShell, en admin
 Get-NetAdapter | Where-Object {$_.PhysicalMediaType -like "*802.3*"} |
-    Format-Table Name, InterfaceDescription, Status, LinkSpeed
+    Format-Table Name, InterfaceDescription, Status, LinkSpeed -AutoSize
 ```
 
-Attendu : **deux** lignes Ethernet en `Up` (ou `Disconnected` si le Linux d'en face est
-éteint — allume-le). Si une ligne reste `Disconnected` avec un câble branché : câble ou prise
-morte, on change de câble avant d'aller plus loin.
+**TU DOIS VOIR** — **deux** lignes Ethernet (peu importe leur nom : `Ethernet`, `Ethernet 2`,
+`Realtek PCIe GbE Family Controller`…).
 
-**c. Créer le pont :**
+**SI ÇA RATE**
 
-1. `Win + R` → `ncpa.cpl` (Panneau de configuration → Centre réseau → Modifier les
-   paramètres de la carte).
-2. Sélectionner **les deux cartes Ethernet** (`Ctrl` + clic).
-3. Clic droit → **Créer un pont** (*Bridge Connections*).
-4. Windows crée « Pont réseau » ; renomme-le `Pont labo`.
-   Les deux cartes physiques passent en « Non connecté » : **c'est normal**, elles sont
-   membres du pont et n'ont plus d'adresse propre.
+| Ce que tu vois | Cause | Action |
+|---|---|---|
+| une seule ligne | une seule carte Ethernet | arrête ici : passe à l'**Annexe B** (réseau isolé A↔B) |
+| deux lignes mais une en `Disabled` | carte désactivée | clic droit → Activer |
+| `Get-NetAdapter` inconnu | vieux Windows | utilise `ipconfig /all` et compte les cartes physiques |
 
-**d. Poser l'adresse du pont :**
+> Coche : `[ ] étape 1 — 2 cartes Ethernet vues`
+
+---
+
+# PHASE 1 — 🆆 PC Windows (10 min)
+
+## Étape 2 — 🆆 Brancher les câbles
+
+**TU FAIS**
+
+1. Câble 1 : une prise du PC Windows → prise Ethernet de 🅰.
+2. Câble 2 : l'autre prise du PC Windows → prise Ethernet de 🅱.
+3. Les deux Linux **allumés**.
+
+**TU DOIS VOIR** — les deux lignes de l'étape 1 passent en **`Up`** avec une vitesse
+(`1 Gbps` ou `100 Mbps`) :
 
 ```powershell
-# Panneau → clic droit "Pont labo" → Propriétés → IPv4 → Propriétés
-#   Adresse IP      : 192.168.137.1
-#   Masque          : 255.255.255.0
-#   Passerelle      : (vide en B1 ; voir B2 pour Internet)
-#   DNS             : 192.168.137.10   (après le TP4)
+Get-NetAdapter | Where-Object {$_.PhysicalMediaType -like "*802.3*"} |
+    Format-Table Name, Status, LinkSpeed -AutoSize
 ```
 
-Équivalent en ligne de commande (adapter le nom `Pont labo`) :
+**SI ÇA RATE**
+
+- Une ligne reste `Disconnected` → le câble ou la prise est mort : **change de câble** et
+  refais le test. Ne cherche pas midi à quatorze heures, un câble neuf coûte 15 DH.
+- Les deux restent `Disconnected` → les Linux sont éteints, ou leurs cartes sont désactivées
+  (`ip -br link` sur le Linux doit montrer `enp1s0` en `UP`).
+
+> Coche : `[ ] étape 2 — les 2 liens sont Up`
+
+## Étape 3 — 🆆 Créer le pont
+
+**TU FAIS**
+
+1. `Win + R` → tape `ncpa.cpl` → Entrée.
+2. Sélectionne **les deux cartes Ethernet** (`Ctrl` + clic sur chacune).
+3. Clic droit sur la sélection → **Créer un pont** (*Bridge Connections*).
+4. Attends 5 s : une icône **« Pont réseau »** apparaît.
+   Renomme-la **`Pont labo`** (`F2`).
+
+**TU DOIS VOIR** — une nouvelle icône `Pont labo`, et les deux cartes physiques passées en
+« Non connecté » / « Identifié ». **C'est normal** : elles sont membres du pont, elles n'ont
+plus d'adresse propre.
+
+**SI ÇA RATE**
+
+| Symptôme | Cause | Action |
+|---|---|---|
+| « Créer un pont » grisé | une des cartes est déjà partagée (ICS) | clic droit sur chaque carte → Propriétés → onglet Partage → tout décocher, puis recommence |
+| le pont se crée mais rien ne passe | pilote qui refuse le mode promiscuité | passe à l'**Annexe B** (réseau isolé A↔B) |
+| pas de « Créer un pont » dans le menu | Windows familial / pilote virtuel | idem, Annexe B |
+
+> Coche : `[ ] étape 3 — pont « Pont labo » créé`
+
+## Étape 4 — 🆆 Donner l'adresse au pont
+
+**TU FAIS** — PowerShell **en administrateur** (le nom doit être exactement `Pont labo`) :
 
 ```powershell
 netsh interface ipv4 set address name="Pont labo" static 192.168.137.1 255.255.255.0
-netsh interface ipv4 set dnsservers name="Pont labo" static 192.168.137.10 primary
 ```
 
-**e. Vérifier :**
+Sans Internet pour l'instant (on verra ça à l'étape 6).
+
+**TU DOIS VOIR**
 
 ```powershell
-ipconfig /all | Select-String -Pattern "Pont labo" -Context 0,8
-# → IPv4 : 192.168.137.1, masque 255.255.255.0
-ping 192.168.137.10
-ping 192.168.137.20
+ipconfig | Select-String -Pattern "Pont labo" -Context 0,6
+#   Adresse IPv4. . . . . . . . . . . . . .: 192.168.137.1
+#   Masque de sous-réseau . . . . . . . . .: 255.255.255.0
 ```
 
-Le `ping` peut échouer **avant** que les Linux soient configurés (§3.3 et §3.4) : c'est normal.
-Refais le test après.
+**SI ÇA RATE** — « Le nom spécifié n'est pas un adaptateur réseau » : le nom du pont n'est pas
+`Pont labo`. Liste-les : `netsh interface show interface`, puis reprends avec le bon nom.
 
-### 3.2 Côté Windows — ajouter Internet (variante B2, facultative)
+> Coche : `[ ] étape 4 — pont en 192.168.137.1/24`
 
-Si une carte Wi-Fi (ou une autre connexion) donne Internet sur le PC Windows :
+## Étape 5 — 🅰 Vérifier le lien physique (côté Linux)
 
-1. `ncpa.cpl` → clic droit sur la connexion **Internet** (Wi-Fi) → Propriétés → onglet
-   **Partage**.
-2. Cocher **« Autoriser d'autres utilisateurs du réseau à se connecter via cette connexion »**.
-3. Liste déroulante : choisir **`Pont labo`**. Valider.
-4. Windows repose automatiquement `192.168.137.1/24` sur le pont et ouvre un mini-DHCP +
-   un relais DNS sur `.1`. Nos IP fixes `.10`/`.20` ne sont pas touchées.
-
-Vérification immédiate, depuis un Linux :
+**TU FAIS**
 
 ```bash
-curl -sI --max-time 8 https://deb.debian.org | head -1    # HTTP/2 200
+cat /sys/class/net/enp1s0/carrier     # 1 = câble détecté
+ip -br link show enp1s0               # doit contenir UP
 ```
 
-> ⚠️ Le partage Windows **filtre l'ICMP** : `ping 192.168.137.1` et `ping 8.8.8.8` peuvent
-> échouer alors que tout fonctionne. Le test valable est **TCP** (`curl`), pas `ping`.
->
-> ⚠️ Ne mets **pas** de passerelle `.1` dans la config Linux en B1 : il n'y a rien derrière,
-> et chaque tentative sortante attendrait un délai d'expiration.
+**TU DOIS VOIR**
 
-### 3.3 Sur Linux A (SRV1)
+```
+1
+enp1s0           UP             74:e5:f9:xx:xx:xx <BROADCAST,MULTICAST,UP,LOWER_UP>
+```
 
-> ⚠️ **Avant tout** : si le profil Wi-Fi porte encore `192.168.137.10/24` (c'est notre cas),
-> il faut **le remettre en DHCP**, sinon la même IP se retrouve sur deux interfaces et rien
-> ne fonctionne de façon prévisible.
->
-> ```bash
-> UUID="$(nmcli -g UUID,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1)"
-> nmcli connection modify "$UUID" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
-> ```
+**SI ÇA RATE**
+
+| Sortie | Cause | Action |
+|---|---|---|
+| `0` | pas de lien : câble, prise, ou carte en face éteinte | rebrancher, changer de câble, vérifier l'étape 2 |
+| `DOWN` | interface désactivée | `sudo ip link set enp1s0 up` puis relis `carrier` |
+| `enp1s0` introuvable | autre nom d'interface | `ip -br link` : utilise le nom trouvé (ex. `eno1`) dans toutes les commandes suivantes |
+
+> Coche : `[ ] étape 5 — carrier = 1 sur 🅰`
+
+## Étape 6 — 🅰 Libérer le Wi-Fi (obligatoire)
+
+**TU FAIS** — le profil Wi-Fi porte encore `192.168.137.10/24`. La même IP sur deux
+interfaces = panne garantie. On le remet en DHCP :
 
 ```bash
-# 0. Le lien physique doit être vu AVANT toute configuration
-cat /sys/class/net/enp1s0/carrier     # 1 = câble détecté ; 0 = rien à l'autre bout
-ip -br link show enp1s0               # doit être UP
+UUID="$(nmcli -g UUID,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1)"
+echo "$UUID"                                    # note l'UUID
+nmcli connection modify "$UUID" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
+nmcli connection up "$UUID"
+```
 
-# 1. Profil dédié au câble (idempotent)
-sudo nmcli connection delete tp-cable 2>/dev/null || true
+**TU DOIS VOIR**
+
+```bash
+ip -4 -o addr show | grep 192.168.137 || echo "aucune IP du labo : c'est bon"
+```
+
+**SI ÇA RATE** — `grep` renvoie deux lignes avec `192.168.137.10` (une sur `wlp2s0`, une sur
+`enp1s0`) : refais la commande avec l'**UUID**, pas le nom (`MID-SAMA 6482`, `VERECHAGUINE…`
+changent de nom quand la machine roame).
+
+> Coche : `[ ] étape 6 — Wi-Fi en DHCP`
+
+## Étape 7 — 🅰 Créer le profil câblé
+
+**TU FAIS** — une seule commande, à coller d'un bloc :
+
+```bash
+sudo nmcli connection delete tp-cable 2>/dev/null
 sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
      ipv4.method manual \
      ipv4.addresses 192.168.137.10/24 \
@@ -203,35 +183,64 @@ sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
      ipv4.dns "127.0.0.1" \
      ipv4.dns-search "ofppt.local" \
      connection.autoconnect no
-sudo nmcli connection up tp-cable
-
-# 2. Vérifications
-ip -4 a show enp1s0                  # 192.168.137.10/24
-ip neigh show dev enp1s0             # une MAC en face = le pont est joignable
-hostname -f                          # srv1.ofppt.local
 ```
 
-En **B2** (Internet par le pont), remplacer les deux lignes de route/DNS par :
+**TU DOIS VOIR** — `Connexion « tp-cable » (…) ajoutée avec succès.`
+
+> `never-default yes` = pas de passerelle : le câble porte le labo, il ne doit pas capter
+> Internet. `autoconnect no` = le profil ne se lève pas tout seul au démarrage.
+
+**SI ÇA RATE** — « Error: failed to add 'tp-cable' » : l'interface n'existe pas sous ce nom.
+Reprends avec le nom de l'étape 5.
+
+> Coche : `[ ] étape 7 — profil tp-cable créé`
+
+## Étape 8 — 🅰 Monter le profil et vérifier
+
+**TU FAIS**
 
 ```bash
-sudo nmcli connection modify tp-cable ipv4.never-default no
-sudo nmcli connection modify tp-cable ipv4.gateway 192.168.137.1
-sudo nmcli connection modify tp-cable ipv4.dns "127.0.0.1,192.168.137.1"
 sudo nmcli connection up tp-cable
+ip -4 a show enp1s0
+ip r
+ip neigh show dev enp1s0
 ```
 
-> `connection.autoconnect no` : le profil ne se lève pas au démarrage, pour ne pas perturber
-> la machine en dehors du TP. On le monte à la main : `sudo nmcli connection up tp-cable`.
+**TU DOIS VOIR**
 
-### 3.4 Sur Linux B (SRV2)
+```
+inet 192.168.137.10/24 brd 192.168.137.255 scope global noprefixroute enp1s0
+...
+192.168.137.0/24 dev enp1s0 proto kernel scope link src 192.168.137.10
+...
+192.168.137.1 dev enp1s0 lladdr xx:xx:xx:xx:xx:xx REACHABLE
+```
 
-> Même précaution qu'en §3.3 : remettre le profil Wi-Fi en DHCP s'il porte encore
-> `192.168.137.20/24`.
+Les trois choses à contrôler : **l'IP `.10` sur `enp1s0`** · **aucune ligne `default via
+192.168.137.1`** · **une MAC en face de `.1`** (le pont Windows répond).
+
+**SI ÇA RATE**
+
+| Symptôme | Cause | Action |
+|---|---|---|
+| pas de ligne `192.168.137.1` dans `ip neigh` | le pont n'est pas monté | `ping -c2 192.168.137.1` puis relis `ip neigh` ; si toujours rien, refais l'étape 4 |
+| `.1` en `FAILED` | adresse absente côté Windows | `ipconfig` sur 🆆 : le pont a-t-il bien `192.168.137.1` ? |
+| `ip r` montre `default via 192.168.137.1` | `never-default` non appliqué | `sudo nmcli connection modify tp-cable ipv4.never-default yes && sudo nmcli connection up tp-cable` |
+
+> Coche : `[ ] étape 8 — 🅰 en .10, pont .1 joignable en ARP`
+
+## Étape 9 — 🅱 Refaire les étapes 5 à 8, en `.20`
+
+**TU FAIS** — exactement les mêmes commandes, avec trois différences :
 
 ```bash
-cat /sys/class/net/enp1s0/carrier     # 1
+cat /sys/class/net/enp1s0/carrier                # 1
 
-sudo nmcli connection delete tp-cable 2>/dev/null || true
+UUID="$(nmcli -g UUID,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1)"
+nmcli connection modify "$UUID" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
+nmcli connection up "$UUID"
+
+sudo nmcli connection delete tp-cable 2>/dev/null
 sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
      ipv4.method manual \
      ipv4.addresses 192.168.137.20/24 \
@@ -241,137 +250,166 @@ sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
      connection.autoconnect no
 sudo nmcli connection up tp-cable
 
-ip -4 a show enp1s0                  # 192.168.137.20/24
-ip neigh show dev enp1s0             # MAC de .1
+ip -4 a show enp1s0                              # 192.168.137.20/24
+ip neigh show dev enp1s0                         # MAC de .1 ET de .10
 ```
 
-En **B2** : mêmes trois `nmcli connection modify` que pour A (passerelle `.1`, DNS
-`192.168.137.10,192.168.137.1`).
+**TU DOIS VOIR** — `192.168.137.20/24` sur `enp1s0`, et **deux** entrées ARP : `.1` et `.10`.
 
-### 3.5 Vérifier le pont dans les deux sens
+**SI ÇA RATE** — `.10` absent de `ip neigh` : c'est 🅰 qui n'est pas monté. Retourne à
+l'étape 8 sur 🅰, puis reviens ici.
+
+> Coche : `[ ] étape 9 — 🅱 en .20, voit .1 et .10`
+
+---
+
+# PHASE 2 — Les portes de sortie
+
+## Étape 10 — Le pont laisse-t-il passer le trafic ?
+
+**TU FAIS** — sur 🅰 :
 
 ```bash
-# sur A
 ping -c2 192.168.137.20
-ping -c2 192.168.137.1
-ip neigh show dev enp1s0      # .1 et .20 doivent avoir une MAC
-
-# sur B
-ping -c2 192.168.137.10
 ```
 
-Si A ne joint pas B mais que les deux joignent `.1`, le pont est en place et le problème est
-ailleurs (pare-feu Linux, profil NetworkManager non appliqué) :
+**TU DOIS VOIR** — `2 received, 0% packet loss`.
+
+**SI ÇA RATE** — et que `.20` répond sur 🅱 vers `.10`, applique dans cet ordre :
 
 ```bash
-sudo ufw status                 # sur A et B : doit laisser passer 53, 80, 443, 21, 445, 2049
-ip -4 a ; ip r                  # l'IP est-elle sur enp1s0 (et pas restée sur wlp2s0) ?
-sudo journalctl -u NetworkManager -n 30 --no-pager
+# 1. le pare-feu Linux (sur A ET sur B)
+sudo ufw status                     # doit laisser passer les services ; sinon : sudo ufw allow from 192.168.137.0/24
+
+# 2. le pont Windows (sur 🆆)
+ping 192.168.137.10                 # si Windows joint .10 mais pas .20 : le pont est correct,
+                                    # le problème est côté B
 ```
 
-Puis le contrôle officiel de la phase 1 :
+> ⚠️ `ping 192.168.137.1` depuis un Linux **peut** échouer : le pare-feu Windows filtre
+> l'ICMP. Ce n'est **pas** une panne. Le test valable est en TCP : `curl` (étape 12).
+
+> Coche : `[ ] étape 10 — ping A↔B OK`
+
+## Étape 11 — Le contrôle officiel (phase 1)
+
+**TU FAIS**
 
 ```bash
-bash 00-verif-reseau.sh .10        # sur A  → mode hotspot (passerelle .1 présente)
-bash 00-verif-reseau.sh .20        # sur B
-# en B1 (pas de passerelle) : ajouter --isole
-# attendu : PHASE 1 VALIDÉE — N contrôles OK
-```
-
-### 3.6 Le Wi-Fi de la machine : à éteindre ou à laisser ?
-
-| Situation | Action |
-|---|---|
-| **B1** (pas d'Internet dans le labo) | couper le Wi-Fi du Linux (`nmcli radio wifi off`) : il ne sert à rien et peut créer une 2ᵉ route par défaut |
-| **B2** (Internet par le pont Windows) | couper aussi le Wi-Fi du Linux : Internet arrive par le câble |
-| Tu veux garder Internet **par le Wi-Fi de la salle** sur ton Linux | garder le Wi-Fi **et** `ipv4.never-default yes` sur `tp-cable` → mode `double` au script |
-
-Le script `00-verif-reseau.sh` distingue les trois cas tout seul :
-`hotspot` (passerelle `.1`), `double` (Internet par une autre interface, labo sans passerelle),
-`isole` (aucune passerelle).
-
----
-
-## 4. Plan de secours : réseau isolé A ↔ B (schéma C)
-
-À utiliser si le pont Windows ne fonctionne pas (pilote qui refuse le mode promiscuité,
-carte USB fantaisiste…). Un seul câble sert, **le PC Windows sort du réseau du labo**.
-
-```
-   Linux A  ═════════ câble 1 ═════════  Linux B
-   192.168.137.10                        192.168.137.20
-
-   (le câble 2 reste libre)
-```
-
-### 4.1 Ce qui ne change PAS
-
-| Élément | Reste identique |
-|---|---|
-| Plan d'adressage | `192.168.137.0/24`, A=`.10`, B=`.20`, pc01=`.1` |
-| Zones Bind, enregistrements A/CNAME/MX/PTR | **aucune modification** |
-| Vhosts Apache, certificat, pages | aucune modification |
-| vsftpd, Samba, exports NFS | aucune modification |
-| `/etc/hosts` sur A et B | aucune modification |
-
-### 4.2 Ce qui change
-
-| Élément | Avant (hotspot) | Après (câble isolé) |
-|---|---|---|
-| Interface | `wlp2s0` | `enp1s0` |
-| Passerelle | `192.168.137.1` | **aucune** (`ipv4.never-default yes`) |
-| Internet / `apt` | via le hotspot | **non disponible** → clé USB |
-| `forwarders` de Bind | `192.168.137.1` | à commenter (sinon 5 s d'attente) |
-| Tests clients Apache/FTP/Samba | depuis Windows | **depuis Linux A** (`curl`, `smbclient`, `showmount`) |
-| TP3 (DHCP) | VM sur PC01 | inchangé : réseau host-only, aucune dépendance |
-
-### 4.3 Configuration
-
-Identique au §3.3 et §3.4 avec `ipv4.never-default yes` (déjà le cas par défaut dans les
-commandes données), puis :
-
-```bash
+# sur 🅰
 bash 00-verif-reseau.sh .10 --isole
+
+# sur 🅱
 bash 00-verif-reseau.sh .20 --isole
-# attendu : PHASE 1 VALIDÉE — N contrôles OK (mode isole)
 ```
 
-### 4.4 Bind sans Internet
-
-Dans `/etc/bind/named.conf.options` :
+**TU DOIS VOIR** — la dernière ligne, en vert :
 
 ```
-    listen-on port 53 { 127.0.0.1; 192.168.137.10; };
-    allow-query { any; };
-    recursion yes;
-
-    /* réseau isolé : plus de resolveur amont.
-       Laisser un forwarder injoignable = 5 s d'attente par requete externe. */
-    // forwarders { 192.168.137.1; 212.217.0.12; };
-    dnssec-validation no;
+PHASE 1 VALIDÉE — 5 contrôles OK (mode isole)
 ```
+
+**SI ÇA RATE** — le script dit exactement quel contrôle échoue (`[ECHEC]`), avec l'attendu et
+l'obtenu. Reprends l'étape correspondante :
+
+| `[ECHEC]` sur | Revoir |
+|---|---|
+| `hostname -f` | `sudo hostnamectl set-hostname srv1.ofppt.local` (ou `srv2…`) |
+| `192.168.137.10/24` | étape 8 (ou 9) |
+| `/etc/hosts` | ajouter les 3 lignes du labo (`/etc/hosts` du doc 00 §3) |
+
+> En mode **B2** (Internet partagé par le pont, étape 12), lance sans `--isole`.
+> Le script détecte seul : `mode hotspot`, `mode double` ou `mode isole`.
+
+> Coche : `[ ] étape 11 — PHASE 1 VALIDÉE sur 🅰` · `[ ] sur 🅱`
+
+## Étape 12 — Et Internet ? (facultatif, variante B2)
+
+**Si le labo n'a pas besoin d'Internet** (paquets déjà installés ou clé USB) : **saute cette
+étape**, elle ne sert qu'à `apt`.
+
+**TU FAIS** — sur 🆆, `ncpa.cpl` :
+
+1. Clic droit sur la connexion **qui donne Internet** (Wi-Fi ou autre) → Propriétés → onglet
+   **Partage**.
+2. Cocher **« Autoriser d'autres utilisateurs du réseau à se connecter via cette connexion »**.
+3. Liste déroulante : **`Pont labo`** → OK.
+
+Windows repose alors automatiquement `192.168.137.1/24` sur le pont (c'est son sous-réseau
+par défaut : aucun conflit).
+
+**TU DOIS VOIR** — sur 🅰 :
 
 ```bash
-sudo named-checkconf && sudo systemctl restart bind9
-dig @127.0.0.1 www.ntic.local +short     # répond toujours
-dig @127.0.0.1 github.com +short         # échoue : NORMAL, pas d'Internet
+curl -sI --max-time 8 https://deb.debian.org | head -1
+# HTTP/2 200
 ```
+
+**SI ÇA RATE**
+
+```bash
+ip r                          # une route par défaut doit exister
+ip route get 8.8.8.8          # doit sortir par enp1s0
+```
+
+Si `ip r` n'a pas de `default` : le partage n'est pas actif (retour à l'étape 12), ou il
+partage vers la mauvaise carte.
+
+> Coche : `[ ] étape 12 — Internet OK par le pont` (ou `[ ] sans objet`)
+
+## Étape 13 — DNS : 🅱 interroge 🅰 par le câble
+
+**TU FAIS** — sur 🅱 :
+
+```bash
+dig @192.168.137.10 www.ntic.local +short
+dig @192.168.137.10 srv1.ofppt.local +short
+```
+
+**TU DOIS VOIR**
+
+```
+192.168.137.20
+192.168.137.10
+```
+
+**SI ÇA RATE**
+
+| Symptôme | Cause | Action |
+|---|---|---|
+| `connection refused` | bind9 arrêté sur 🅰 | sur 🅰 : `sudo systemctl start bind9` |
+| `connection timed out` | pare-feu sur 🅰 | `sudo ufw allow 53` |
+| `SERVFAIL` | zone en erreur | `sudo named-checkconf && sudo named-checkzone ofppt.local /etc/bind/zones/ofppt.local.dir` |
+
+> Coche : `[ ] étape 13 — DNS de 🅰 répond depuis 🅱 par le câble`
+
+## Étape 14 — Reprendre le playbook
+
+**TU FAIS** — retour dans `09_PLAYBOOK_RELAIS.md`, à l'étape **19** (paquets + comptes sur 🅱),
+puis **25 bis** (bascule du résolveur de 🅱).
+
+**TU DOIS VOIR** — le playbook avance à nouveau : le réseau n'est plus un blocage.
+
+> Coche : `[ ] étape 14 — playbook repris à l'étape 19`
 
 ---
 
-## 5. Retour à la normale après le TP
+# PHASE 3 — Retour à la normale
 
-Côté Windows : `ncpa.cpl` → clic droit sur **`Pont labo`** → **Supprimer le pont**. Les deux
-cartes Ethernet redeviennent indépendantes (et repassent en DHCP si tu les utilises ailleurs).
+## Étape 15 — 🆆 Défaire le pont
 
-Côté Linux :
+`ncpa.cpl` → clic droit sur **`Pont labo`** → **Supprimer le pont**. Les deux cartes
+redeviennent indépendantes (et repassent en DHCP).
+
+## Étape 16 — 🅰 et 🅱 Défaire le profil câblé
 
 ```bash
 sudo nmcli connection delete tp-cable
-sudo nmcli radio wifi on          # remettre le Wi-Fi si tu l'avais coupé
+nmcli radio wifi on                  # si le Wi-Fi avait été coupé
 ```
 
-Pour tout le reste (hostname, `systemd-resolved`, `bind9`, `/etc/hosts`, profils Wi-Fi en DHCP) :
+Puis, pour tout le reste (hostname, `systemd-resolved`, `bind9`, `/etc/hosts`, profils Wi-Fi
+en DHCP) :
 
 ```bash
 sudo bash 98-retour-a-la-normale.sh
@@ -379,93 +417,73 @@ sudo bash 98-retour-a-la-normale.sh
 
 ---
 
-## 6. Ce qu'il faut dire dans le rapport
+# ANNEXE A — Dépannage express
 
-Trois phrases, et elles montrent que vous avez compris le montage :
-
-> « Le laboratoire utilise un réseau privé `192.168.137.0/24` en Ethernet. Le PC client
-> Windows, qui possède deux interfaces, est configuré en **pont logiciel** : il relie les deux
-> serveurs Linux sur un même segment sans switch physique, et porte l'adresse
-> `192.168.137.1` du plan d'adressage.
-> La connexion Internet (lorsqu'elle est disponible) est partagée vers ce pont, ce qui place
-> automatiquement le réseau du laboratoire dans le sous-réseau `192.168.137.0/24` ; en son
-> absence, les paquets sont installés hors ligne depuis un dépôt local.
-> Le partage de connexion Windows filtrant l'ICMP, les tests de connectivité ont été validés
-> en TCP (`curl`, `smbclient`, `dig`) plutôt qu'en `ping`. »
-
-C'est exactement le genre de justification qui fait la différence entre « on a suivi la
-feuille » et « on a compris ce qu'on a monté ».
+| Symptôme | Où | Cause | Commande de diagnostic |
+|---|---|---|---|
+| `carrier = 0` | Linux | pas de lien physique | `cat /sys/class/net/enp1s0/carrier` |
+| `ip neigh` vide | Linux | le pont ne répond pas | `ping -c2 192.168.137.1` |
+| `.1` en `FAILED` | Linux | adresse absente sur le pont | `ipconfig` sur Windows |
+| deux IP `192.168.137.x` | Linux | Wi-Fi pas nettoyé | `ip -4 -o addr show \| grep 192.168.137` |
+| `ping .1` muet, `curl` OK | Linux | ICMP filtré par Windows | **pas une panne** |
+| `ping` A↔B muet | Linux | ufw, ou pont HS | `sudo ufw status` |
+| pont instable | Windows | veille des cartes | Gestionnaire de périphériques → carte → Gestion de l'alimentation |
+| pont impossible | Windows | pilote sans promiscuité | **Annexe B** |
 
 ---
 
-## 7. Variante « deux machines seulement »
+# ANNEXE B — Plan de secours : réseau isolé A ↔ B
 
-Question fréquente : et si on n'a que **deux** PC ? Réponse courte : **oui, et c'est même
-plus simple** — un seul câble, aucun pont, aucun switch, aucun partage de connexion.
+Si le pont Windows refuse de fonctionner : **un seul câble**, 🆆 sort du réseau du labo.
 
 ```
-   Machine 1 ═══════════ câble ═══════════  Machine 2
-   192.168.137.10                          192.168.137.20
-   (SRV1 : DNS + DHCP en VM)               (SRV2 : Apache + FTP + Samba + NFS)
+   🅰 192.168.137.10  ═══════ câble ═══════  🅱 192.168.137.20
 ```
 
-### 7.1 Deux Linux — ✅ tout le TP est faisable
+1. Câble direct entre 🅰 et 🅱 (le second reste au sac).
+2. Étapes 5 à 9 du mode opératoire, **sans** toucher à Windows (le `never-default yes` est
+   déjà dans le profil `tp-cable`). Sur 🅱, `ipv4.dns "192.168.137.10"` inchangé.
+3. Vérifier : `ping -c2 192.168.137.20` depuis 🅰 → doit répondre (aucun pare-feu Windows
+   sur le chemin).
+4. Contrôle : `bash 00-verif-reseau.sh .10 --isole` → `PHASE 1 VALIDÉE`.
 
-C'est la meilleure configuration à deux machines : **les six TP sont réalisables**, puisque
-tous les services demandés sont des services Linux (Bind, `isc-dhcp-server`, Apache, vsftpd,
-Samba, NFS).
+**Ce qu'on perd** : les tests clients depuis Windows (TP4/5/6/9). Ils se font depuis 🅰
+(`curl`, `dig`, `smbclient`, `ftp`, `showmount`), et on l'écrit dans le rapport.
 
-- Mise en réseau : §3.3 et §3.4 de ce document, avec `ipv4.never-default yes` (pas de `.1`).
-  Le second câble reste en secours.
-- Le `ping` **fonctionne** ici (aucun pare-feu Windows sur le chemin) : plus de faux échecs.
-- Il manque seulement le **client Windows** : on le remplace par une **VM Windows dans
-  VirtualBox**, carte réseau en **mode « Accès par pont » sur `enp1s0`**, IP `192.168.137.1`
-  ou DHCP. Les captures d'écran demandées par l'énoncé restent donc produites.
+---
 
-Ce qui change dans les rapports : le PC01 physique devient une VM ; le TP3 (DHCP) se fait
-dans une **autre** VM host-only, exactement comme prévu au doc 04.
+# ANNEXE C — À quoi sert le poste Windows (et la variante deux machines)
 
-### 7.2 Deux Windows — ⚠️ techniquement oui, pédagogiquement non
+Le PC Windows **n'héberge aucun service** : il est **client de test** et **hôte des VM du TP3**.
 
-Le réseau fonctionne (deux IP fixes, partages SMB natifs), mais le module est **«
-administration d'un réseau sous Linux »** : les rapports doivent montrer `named.conf`,
-`apache2.conf`, `smb.conf`, `/etc/exports`, `ufw`, AppArmor. Windows ne fournit ni Bind, ni
-vsftpd, ni exports NFS (le rôle serveur NFS n'existe pas sur un Windows client).
+| Rôle | Où c'est exigé | Perdu si absent |
+|---|---|---|
+| Client de test (captures) | TP3 §9, TP4, TP5 (certificat), TP6, TP9 (`\\srv2\partage`) | les preuves « côté client » |
+| Hôte VirtualBox des VM DHCP | TP3-1, TP3-2 | rien : VirtualBox existe sous Linux |
 
-Ce que ça permet quand même : ping, partages SMB, client FTP, et le **TP3 (DHCP) en VM** —
-c'est-à-dire les TP « client », pas les TP « serveur ». À éviter, sauf si les deux Linux
-sont réellement indisponibles le jour de l'évaluation.
+**Variante « deux machines »** : un seul câble, aucun pont, aucun switch. Deux Linux = les six
+TP faisables (tous les services sont Linux) ; le client Windows devient une **VM VirtualBox en
+accès par pont**. Deux Windows = le réseau marche, mais pas le module (ni Bind, ni vsftpd, ni
+export NFS).
 
-### 7.3 Récapitulatif
-
-| Configuration | TP serveurs (4,5,6,8,9) | TP3 DHCP | Client Windows | Câblage |
+| Config | TP serveurs | TP3 | Client Windows | Câblage |
 |---|---|---|---|---|
-| 2 Linux + 1 Windows (**schéma B**) | ✅ | ✅ | ✅ natif | 2 câbles + pont |
+| 2 Linux + 1 Windows (ce doc) | ✅ | ✅ | ✅ natif | 2 câbles + pont |
 | **2 Linux** + VM Windows en pont | ✅ | ✅ | ✅ en VM | **1 câble** |
-| 2 Windows | ❌ | ✅ en VM | ✅ natif | 1 câble |
+| 2 Windows | ❌ | ✅ VM | ✅ natif | 1 câble |
 
 **Ordre de préférence : 2 Linux + 1 Windows › 2 Linux + VM Windows › 2 Windows.**
 
 ---
 
-## 8. À quoi sert le poste Windows (et ce qu'on perd sans lui)
+# ANNEXE D — Ce qu'on dit dans le rapport
 
-Le PC Windows **n'est pas un serveur** dans ce module : aucun service du TP ne tourne chez
-lui. Il sert à deux choses, toutes deux notées :
-
-| Rôle | Où c'est exigé | Perdu si on le retire |
-|---|---|---|
-| **Client de test** (captures d'écran) | TP3 §9 (`ipconfig /all`), TP4 (`nslookup`), TP5 (navigateur + certificat), TP6 (Explorateur/FileZilla), TP9 (`\\srv2\partage`) | les preuves « côté client » des rapports |
-| **Hôte des VM du TP3** (VirtualBox) | TP3-1 et TP3-2 | rien d'irremplaçable : VirtualBox existe aussi sous Linux |
-
-Donc : **utile, oui ; indispensable, non.** Il porte environ deux tiers des preuves clients,
-mais aucun service. S'il disparaît :
-
-1. Les tests clients se font depuis SRV1 (`curl`, `dig`, `smbclient`, `ftp`, `showmount`) —
-   c'est déjà prévu dans les documents.
-2. Les VM DHCP passent sur un des Linux (même réseau host-only).
-3. On l'écrit noir sur blanc dans le rapport : « poste client Windows indisponible ;
-   tests clients réalisés depuis SRV1 ». C'est un écart assumé, pas une faute.
-
-**La seule vraie perte** : les captures Windows natives (Explorateur réseau, certificat dans
-Edge). Remplacement propre = une **VM Windows en accès par pont** sur le câble.
+> « Le laboratoire utilise un réseau privé `192.168.137.0/24` en Ethernet. Le PC client
+> Windows, qui possède deux interfaces, est configuré en **pont logiciel** : il relie les deux
+> serveurs Linux sur un même segment sans switch physique, et porte l'adresse `192.168.137.1`
+> du plan d'adressage.
+> La connexion Internet, lorsqu'elle est disponible, est partagée vers ce pont, ce qui place
+> automatiquement le laboratoire dans le sous-réseau `192.168.137.0/24` ; en son absence, les
+> paquets sont installés hors ligne depuis un dépôt local.
+> Le partage de connexion Windows filtrant l'ICMP, les tests de connectivité ont été validés
+> en TCP (`curl`, `smbclient`, `dig`) plutôt qu'en `ping`. »

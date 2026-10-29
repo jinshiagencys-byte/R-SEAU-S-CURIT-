@@ -33,8 +33,8 @@ Légende : 🅰 Linux A (SRV1) · 🅱 Linux B (SRV2) · 🆆 Windows (PC01) · 
 
 > 🔌 **Si le hotspot devient le problème** (déconnexions, isolation client, veille du PC
 > Windows) : basculer sur le **câblé**. Procédure complète dans `10_RESEAU_CABLE.md`.
-> **Matériel retenu** : 2 câbles, pas de switch, PC Windows à 2 prises RJ45 → **schéma B
-> (pont Windows)**, §3 du doc 10.
+> **Matériel retenu** : 2 câbles, pas de switch, PC Windows à 2 prises RJ45 → **pont Windows**,
+> étapes 1 à 16 du doc 10 (mode opératoire, une étape à la fois).
 >
 > Ce qui change dans ce playbook : étapes **5 à 10** (interface `enp1s0` au lieu de `wlp2s0`)
 > et le mode du script de contrôle. Le reste est identique.

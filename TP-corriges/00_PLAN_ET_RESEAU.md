@@ -227,7 +227,7 @@ machines sans switch ou sans machine à deux ports — le document expose les tr
 possibles.
 
 **Montage retenu** : PC Windows à deux prises RJ45, pas de switch → **schéma B = pont
-logiciel Windows** (§3 du doc 10). Windows relie les deux Linux en interne, porte
+logiciel Windows** (étapes 2 à 4 du doc 10). Windows relie les deux Linux en interne, porte
 `192.168.137.1`, et le plan d'adressage ne change pas.
 
 Ce qui change, et **seulement** ça :

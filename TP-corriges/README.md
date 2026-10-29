@@ -33,7 +33,7 @@ Corrigés et fiches d'exécution pour les TP DHCP / DNS / Apache / FTP / NFS / S
 | `07_UBUNTU-24.04.md` | Linux A **et** Linux B | **commandes et fichiers de conf réels pour Ubuntu** (§12 = runbook complet de SRV2) |
 | `08_QUI_FAIT_QUOI.md` | tous | **ordre d'exécution en 8 phases, par machine, avec les portes de sortie** |
 | `09_PLAYBOOK_RELAIS.md` | tous | **61 étapes numérotées, un porteur du bâton à la fois, avec les messages de passage** |
-| `10_RESEAU_CABLE.md` | tous | **variante câblée (Ethernet)** : 3 câblages possibles, config `nmcli`, Bind sans Internet — remplace le §5.2 du doc 00 |
+| `10_RESEAU_CABLE.md` | tous | **labo câblé : mode opératoire 16 étapes** (pont Windows, `nmcli`, portes de sortie) — remplace le §5.2 du doc 00 |
 | `scripts/00-verif-reseau.sh` | A et B | contrôle de la phase 1 : IP, passerelle, Internet, ping croisé, `/etc/hosts` |
 | `scripts/01-verif-dns.sh` | A | contrôle des 29 enregistrements du TP4 (A, CNAME, MX, AAAA, NS, PTR, SOA, SRV) |
 | `scripts/90-collecte.sh` | tous | rapport complet prêt à coller dans une Issue GitHub (réseau, services, ports, `dig`, journaux) |
@@ -56,7 +56,7 @@ host-only isolé — explication dans le document 04.
 
 > **Si le Wi-Fi n'est pas fiable**, `10_RESEAU_CABLE.md` donne la version câblée du même
 > labo : switch 5 ports, PC Windows à deux cartes en pont **← montage retenu**, ou réseau
-> isolé avec deux câbles. Le §7 traite aussi le cas « deux machines seulement ». Le plan
+> isolé avec deux câbles. L'annexe C traite aussi le cas « deux machines seulement ». Le plan
 > d'adressage et toutes les configurations de service restent identiques — seule l'interface
 > change.
 

@@ -19,7 +19,7 @@ C'est aussi l'occasion de montrer deux clients (Linux et Windows) sur le même s
 **Matériel nécessaire :** ~3 Go de RAM libre et ~15 Go de disque sur le PC Windows.
 
 > 🔌 **Le PC Windows doit d'abord être mis sur le réseau du labo** : pont logiciel entre ses
-> deux cartes Ethernet, adresse `192.168.137.1`. Procédure détaillée au **§3.1 de
+> deux cartes Ethernet, adresse `192.168.137.1`. Procédure détaillée aux **étapes 2 à 4 de
 > `10_RESEAU_CABLE.md`**. Le TP3 ci-dessous ne dépend pas de ce réseau (VM host-only), mais
 > les tests clients des TP4/5/6/8/9, si.
 
