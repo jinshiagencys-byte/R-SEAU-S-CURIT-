@@ -1,0 +1,17 @@
+# étape 5 — le lien
+cat /sys/class/net/enp1s0/carrier        # attendu : 1
+
+# étape 6 — couper le Wi-Fi (indispensable : même sous-réseau)
+nmcli radio wifi off
+
+# étape 7 — profil câble
+sudo nmcli connection delete tp-cable 2>/dev/null
+sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable \
+     ipv4.method manual ipv4.addresses 192.168.137.20/24 \
+     ipv4.never-default yes ipv4.dns "192.168.137.10" ipv4.dns-search "ofppt.local" \
+     connection.autoconnect no
+
+# étape 8 — monter et vérifier
+sudo nmcli connection up tp-cable
+ip -4 a show enp1s0
+ip neigh show dev enp1s0
