@@ -59,7 +59,7 @@ interfaces casse tout. On le remet en DHCP, **par UUID** (les noms changent quan
 roame) :
 
 ```bash
-UUID="$(nmcli -g UUID,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1)"
+UUID="$(nmcli -g UUID,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1 | head -1)"
 echo "UUID = $UUID"
 nmcli connection modify "$UUID" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
 ```
@@ -71,8 +71,18 @@ ip -4 -o addr show | grep 192.168.137 || echo "aucune IP du labo : c'est bon"
 # aucune IP du labo : c'est bon
 ```
 
-**SI ÇA RATE** — tu vois deux fois `192.168.137.10` (sur `wlp2s0` **et** `enp1s0`) : tu as
-modifié le mauvais profil. Reprends avec l'UUID affiché ci-dessus.
+**SI ÇA RATE**
+
+| Symptôme | Cause | Action |
+|---|---|---|
+| `Erreur : connexion inconnue : « c8ca… af3f… 7b83… »` (une liste d'UUID) | la variable contient **tous** les profils Wi-Fi, pas seulement celui qui est actif | il manque `--active` : reprends la commande **exactement** comme ci-dessus |
+| deux fois `192.168.137.10` (sur `wlp2s0` **et** `enp1s0`) | mauvais profil modifié | reprends avec l'UUID affiché |
+| `UUID =` vide | aucun Wi-Fi actif | `nmcli device status` : la carte est-elle connectée ? |
+
+> 🔎 **Pourquoi `--active` :** une machine garde un profil par réseau Wi-Fi déjà visité (ici
+> **24**). Sans `--active`, `grep` les renvoie tous, la variable devient une liste de 24 lignes,
+> et `nmcli connection modify` reçoit un nom de connexion qui n'existe pas.
+> Le `| head -1` final est une ceinture de sécurité supplémentaire.
 
 > Coche : `[ ] étape 2 — Wi-Fi de 🅰 en DHCP`
 
@@ -152,7 +162,7 @@ câble ou la prise de 🅱. Change de câble (tu en as deux).
 **TU FAIS**
 
 ```bash
-UUID="$(nmcli -g UUID,TYPE connection show | grep ':802-11-wireless$' | cut -d: -f1)"
+UUID="$(nmcli -g UUID,TYPE connection show --active | grep ':802-11-wireless$' | cut -d: -f1 | head -1)"
 nmcli connection modify "$UUID" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
 ```
 
