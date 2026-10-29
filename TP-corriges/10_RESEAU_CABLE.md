@@ -19,6 +19,50 @@
                    → TP3 en VM host-only, autonome
 ```
 
+---
+
+# BLOC UNIQUE POUR 🅱 — à copier-coller tel quel
+
+Aucun `git clone`, aucun script à télécharger, **aucun `\` de fin de ligne** (c'est ce qui a
+cassé les collages précédents). Tout est sur une seule ligne là où ça compte.
+
+```bash
+# 1) le câble est-il vu ?
+cat /sys/class/net/enp1s0/carrier                 # attendu : 1
+
+# 2) couper le Wi-Fi (il est sur le même sous-réseau)
+nmcli radio wifi off
+
+# 3) nom de machine + /etc/hosts
+sudo hostnamectl set-hostname srv2.ofppt.local
+sudo sed -i '/^192\.168\.137\./d' /etc/hosts
+printf '192.168.137.10   srv1.ofppt.local srv1\n192.168.137.20   srv2.ofppt.local srv2\n192.168.137.1    pc01.ofppt.local pc01\n' | sudo tee -a /etc/hosts
+
+# 4) profil câblé (UNE SEULE LIGNE)
+sudo nmcli connection delete tp-cable 2>/dev/null
+sudo nmcli connection add type ethernet ifname enp1s0 con-name tp-cable ipv4.method manual ipv4.addresses 192.168.137.20/24 ipv4.never-default yes ipv4.dns "192.168.137.10" ipv4.dns-search "ofppt.local" connection.autoconnect no
+sudo nmcli connection up tp-cable
+
+# 5) vérifications
+ip -4 -o addr show enp1s0                          # 192.168.137.20/24
+ip route                                           # AUCUNE "default via"
+ip neigh show dev enp1s0                           # 192.168.137.10 + une MAC
+hostname -f                                        # srv2.ofppt.local
+ping -c2 192.168.137.10                            # 0% packet loss
+```
+
+**Si une vérification ne donne pas le résultat attendu, on s'arrête là** et on applique
+« SI ÇA RATE » de l'étape correspondante (5 à 8 ci-dessous).
+
+**Preuve finale, à poster :**
+
+```bash
+getent hosts srv2.ofppt.local
+dig @192.168.137.10 www.ntic.local +short          # → 192.168.137.20
+```
+
+---
+
 Plan d'adressage **inchangé** : `192.168.137.0/24`, 🅰 `.10`, 🅱 `.20`, 🆆 `.1` (réservé,
 non branché). Ni passerelle, ni Internet par le câble.
 
